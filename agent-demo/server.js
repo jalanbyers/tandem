@@ -76,24 +76,31 @@ function groundingNumbers(toolOutputs) {
 }
 
 /**
- * Check each numeric claim in the reply: grounded = the number appears in a
- * tool/RAG output this turn AND its sentence carries a [src:...] citation.
+ * Check each numeric claim in the reply. A claim passes when the number
+ * appears in a tool/RAG output this turn AND is verifiable via a [src:...]
+ * citation — on its own sentence, or on another sentence in the same reply
+ * that cites the same number (the 📎 chip is one tap away either way).
  */
 function checkFaithfulness(text, grounded) {
-  const plain = text.replace(/<[^>]+>/g, ' ');
+  // "401(k)" is an account name, not a numeric claim
+  const plain = text.replace(/<[^>]+>/g, ' ').replace(/401\s*\(\s*k\s*\)/gi, 'FOUR-OH-ONE-K');
   const sentences = plain.split(/(?<=[.!?])\s+|<br\s*\/?>/i);
-  let total = 0, ok = 0;
-  const misses = [];
+  const claims = [];
+  const citedNums = new Set();
   for (const s of sentences) {
     const nums = (s.replace(/\[src:[\w-]+\]/g, '').match(NUM_RE) || [])
       .filter(n => !/^\d$/.test(n)); // single bare digits ("4 scenarios") aren't claims
     if (!nums.length) continue;
     const hasCite = /\[src:[\w-]+\]/.test(s);
-    for (const n of nums) {
-      total++;
-      if (grounded.has(normNum(n)) && hasCite) ok++;
-      else misses.push({ number: n, cited: hasCite, sentence: s.trim().slice(0, 120) });
-    }
+    if (hasCite) nums.forEach(n => citedNums.add(normNum(n)));
+    claims.push(...nums.map(n => ({ n, hasCite, sentence: s.trim().slice(0, 120) })));
+  }
+  let total = 0, ok = 0;
+  const misses = [];
+  for (const c of claims) {
+    total++;
+    if (grounded.has(normNum(c.n)) && (c.hasCite || citedNums.has(normNum(c.n)))) ok++;
+    else misses.push({ number: c.n, cited: c.hasCite, sentence: c.sentence });
   }
   return { total, ok, misses };
 }
@@ -183,9 +190,12 @@ async function handleChat(session, userText, send) {
       }
     }
 
-    const apiBlocks = blocks.map(b => b.type === 'text'
-      ? { type: 'text', text: b.text }
-      : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
+    // the API rejects empty text blocks, which models often emit before tool_use
+    const apiBlocks = blocks
+      .filter(b => b.type !== 'text' || b.text.trim() !== '')
+      .map(b => b.type === 'text'
+        ? { type: 'text', text: b.text }
+        : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
     session.history.push({ role: 'assistant', content: apiBlocks });
     finalText += blocks.filter(b => b.type === 'text').map(b => b.text).join('');
 

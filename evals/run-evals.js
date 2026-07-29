@@ -156,6 +156,9 @@ if (!API_KEY) {
   await withServer({ keyless: false }, async port => {
     for (const c of GOLDEN.cases.filter(c => c.state !== 'degraded')) {
       console.log(`\n[${c.state}/${c.kind}] ${c.id}: "${c.question}"`);
+      // case isolation: memories written by one case (e.g. an approved action)
+      // must not leak into another case's context
+      if (existsSync(TMP_STORE)) rmSync(TMP_STORE);
       let turn;
       try { turn = await chat(port, `live-${c.id}`, c.question); }
       catch (err) { check(`${c.id}: agent responded`, false, err.message); continue; }
@@ -169,8 +172,10 @@ if (!API_KEY) {
         } else if (chk === 'escalation_offer') {
           check(`${c.id}: human handoff offered`, events.some(e => e.type === 'escalation_offer' || e.type === 'escalation_tool'));
         } else if (chk === 'grounded_citations') {
-          check(`${c.id}: every numeric claim grounded+cited (${f.ok}/${f.total})`, f.ok === f.total,
+          const gOk = f.ok === f.total;
+          check(`${c.id}: every numeric claim grounded+cited (${f.ok}/${f.total})`, gOk,
             f.misses?.length ? `misses: ${f.misses.map(m => m.number).join(', ')}` : '');
+          if (!gOk) console.log(`    reply: ${plain.replace(/\s+/g, ' ').slice(0, 400)}`);
         } else if (chk === 'used_tools') {
           check(`${c.id}: used tools for facts`, events.some(e => e.type === 'tool'));
         } else if (chk === 'cites_expected_source') {
@@ -226,7 +231,9 @@ function loadEnv() {
 async function withServer({ keyless }, fn) {
   const port = 8900 + Math.floor(Math.random() * 90);
   const childEnv = { ...process.env, ...loadEnv(), PORT: String(port), DC_MEMORY_STORE: TMP_STORE };
-  if (keyless) delete childEnv.ANTHROPIC_API_KEY;
+  // empty string (not delete): the server overlays process.env on top of .env,
+  // so this forces keyless mode even when the repo has a real .env
+  if (keyless) childEnv.ANTHROPIC_API_KEY = '';
   const child = spawn('node', [join(ROOT, 'agent-demo/server.js')], { env: childEnv, stdio: 'ignore' });
   try {
     for (let i = 0; i < 40; i++) {
