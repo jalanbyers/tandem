@@ -18,7 +18,7 @@
 
 **Jobs-to-be-done, with a non-AI baseline.** "When I worry about money (weekly), I want a plan that knows me, so I stop feeling behind." The explicit comparison is the current static planning tool — AI only earns its place if it measurably improves the outcome.
 
-**Journey mapping exposed the defining insight.** Stages: Get Oriented → Plan → Act → Stay on Track. Listing activities per stage shows that financial guidance is *twenty conversations across months*, not one session. That's the product-shaped reason "re-entry moments" appears in the role description — statefulness isn't a feature, it's the product.
+**Journey mapping exposed the defining insight.** Stages: Get Oriented → Plan → Act → Stay on Track. Listing activities per stage shows that financial guidance is *twenty conversations across months*, not one session. That's why "re-entry moments" are a first-class design object here — statefulness isn't a feature, it's the product.
 
 **Pain sizing (magnitude / frequency / severity / competition / contrast):**
 
@@ -34,7 +34,7 @@
 
 ---
 
-## 2. Design — the heart of the Conversational UX role
+## 2. Design — the heart of conversational UX work
 
 **Stateful conversation design.** Four explicit states — orientation, planning, action, escalation — with designed transitions, visible in the demo's header pill. Not one open-ended chat. Each state has its own eval expectations and autonomy ceiling.
 

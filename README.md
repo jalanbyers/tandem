@@ -1,8 +1,10 @@
 # Digital Coach — dual-demo monorepo
 
 Two linked demos of a **stateful AI financial-guidance concept**, driven by one shared
-source of truth. Built as a portfolio artifact by Alan Byers for conversational UX / AI
-product interview discussion.
+source of truth: a scripted showcase that makes every design decision visible, and a live
+agent that proves those same decisions run for real. One spec, two renderings — change a
+rule once in `shared/` and both demos change. A design exploration by Alan Byers in
+conversational UX for regulated domains.
 
 > **Disclaimer:** concept exercise only. **Not a Fidelity product**, not affiliated with or
 > endorsed by Fidelity Investments. All data is fictional; no real accounts are connected.
@@ -171,5 +173,5 @@ per conversation state: 1 happy path, 3 edges, 1 boundary) — and the suite re-
 
 ## Author
 
-Alan Byers — Principal UX Developer → Product. Built to support interview discussion of
-conversational UX & AI experience design in regulated domains.
+Alan Byers — Principal UX Developer → Product. Built to explore conversational UX & AI
+experience design in regulated domains.

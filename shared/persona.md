@@ -54,5 +54,5 @@ Live-model demo on fictional data — not a Fidelity product, no real accounts c
 Header subtitle (both demos):
 
 <!-- copy:header-sub -->
-Stateful financial guidance — designed by Alan Byers for interview discussion. Not a Fidelity product.
+Stateful financial guidance — a dual-demo design concept by Alan Byers. Not a Fidelity product.
 <!-- /copy -->

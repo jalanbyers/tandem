@@ -78,7 +78,7 @@ export const FEEDBACK_COPY = {
 export const METRICS_LEDE = {
   title: 'Instrumentation — what the demo is logging right now',
   lede:
-    `Every interaction increments these counters, exactly as production telemetry would. The point for an interview: <b>metrics aren't a report, they're the steering wheel</b> — each one below names the design decision it drives.`,
+    `Every interaction increments these counters, exactly as production telemetry would. The point: <b>metrics aren't a report, they're the steering wheel</b> — each one below names the design decision it drives.`,
 };
 
 export function metricCards(M) {
