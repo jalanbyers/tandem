@@ -1,4 +1,8 @@
-# Digital Coach — dual-demo monorepo
+# Tandem — dual-demo monorepo
+
+**Tandem** — stateful financial guidance that never acts alone. The name is the design
+thesis: every write is propose-and-confirm with a human in the loop, and the repo itself
+is two demos running in tandem off one shared core.
 
 Two linked demos of a **stateful AI financial-guidance concept**, driven by one shared
 source of truth: a scripted showcase that makes every design decision visible, and a live
@@ -8,7 +12,7 @@ conversational UX for regulated domains.
 
 > **Disclaimer:** concept exercise only. **Not a Fidelity product**, not affiliated with or
 > endorsed by Fidelity Investments. All data is fictional; no real accounts are connected.
-> Every UI surface carries: *"Digital Coach provides educational guidance, not
+> Every UI surface carries: *"Tandem provides educational guidance, not
 > individualized investment advice."*
 
 ## The two demos

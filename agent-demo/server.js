@@ -1,5 +1,5 @@
 /**
- * Digital Coach — agent demo server. Minimal Node (no dependencies):
+ * Tandem — agent demo server. Minimal Node (no dependencies):
  * - Anthropic API (key from ../.env, never committed), streaming via SSE
  * - Server-side guardrail enforcement (shared/guardrails.js): advice-line +
  *   escalation detection on every user turn, confirmation-gated writes,
@@ -342,6 +342,6 @@ const server = createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Digital Coach agent demo → http://localhost:${PORT}`);
+  console.log(`Tandem agent demo → http://localhost:${PORT}`);
   console.log(API_KEY ? `model: ${MODEL}` : 'NO ANTHROPIC_API_KEY — chat will degrade honestly (copy .env.example to .env)');
 });

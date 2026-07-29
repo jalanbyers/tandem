@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digital Coach — Lifecycle Demo (scripted)</title>
+<title>Tandem — Lifecycle Demo (scripted)</title>
 <link rel="stylesheet" href="../shared/tokens.css">
 <style>
   /* Lifecycle-demo-only styles: the Build story (4D) view. Everything else lives in shared/tokens.css. */
@@ -27,9 +27,9 @@
 <body>
 
 <header>
-  <div class="logo">DC</div>
+  <div class="logo">T</div>
   <div>
-    <h1>Digital Coach <span style="font-weight:400;color:var(--ink-2)">· lifecycle demo (scripted)</span></h1>
+    <h1>Tandem <span style="font-weight:400;color:var(--ink-2)">· lifecycle demo (scripted)</span></h1>
     <div class="sub" id="headerSub"></div>
   </div>
   <nav class="tabs">
@@ -76,7 +76,7 @@
     <h2>How this was built — the 4D method, applied</h2>
     <div class="lede">The demo isn't a mock-up of a chat window; it's a set of deliberate product decisions made visible. Each phase below names the frameworks used and links to the moment in the demo where the decision shows up. The rules themselves live in <b>shared/</b> — the same modules that compile into the agent demo's system prompt.</div>
 
-    <div class="quote" style="font-size:13px">"Digital Coach's core product problem is earning the right to be <b>stateful</b>: every remembered fact, re-entry moment, and proactive nudge either compounds trust or destroys it."</div>
+    <div class="quote" style="font-size:13px">"Tandem's core product problem is earning the right to be <b>stateful</b>: every remembered fact, re-entry moment, and proactive nudge either compounds trust or destroys it."</div>
 
     <div class="phase open">
       <button onclick="togglePhase(this)"><span class="num">1</span> Discover — where does conversational AI create value? <span class="caret">▶</span></button>
@@ -129,7 +129,7 @@
       <div class="ph-body">
         The 2026 reality check: fully autonomous agents are ~2–3% of production workloads. The winning architecture is a <b>deterministic workflow that delegates to agents only where reasoning is required</b> — which preserves the audit trail compliance needs.
         <ul>
-          <li><b>Build/don't-build honesty:</b> Digital Coach scores "build" on complexity and scale but "don't build" on environment constraints (errors are costly in finance) — which is exactly why autonomy is capped at propose-and-confirm and why a compliance-verifier agent cross-validates the strategy agent.</li>
+          <li><b>Build/don't-build honesty:</b> Tandem scores "build" on complexity and scale but "don't build" on environment constraints (errors are costly in finance) — which is exactly why autonomy is capped at propose-and-confirm and why a compliance-verifier agent cross-validates the strategy agent.</li>
           <li><b>Memory boundaries between agents:</b> the budgeting agent sees task context only; the user-visible profile is the shared layer. A UX decision, not just architecture.</li>
           <li><b>Failure design:</b> wrong balance shown = incident; market-crash day = peak load + peak anxiety (the worst time to fail — degrade to disabled states); abuse vectors closed (rate limits, scoped prompts — your coach is not free GPT access).</li>
           <li><b>Analytics drive evolution</b> — see the Metrics tab: quality signals → weekly golden-set triage → eval-gated releases → Sheridan-level promotions per state. Containment is <i>not</i> the goal: in finance you <b>want</b> some escalations, and "appropriate escalation" is counted as success. Industry benchmark context: new assistants contain 35–50%, mature ones 65–80% — but low CSAT with high containment means you're exhausting customers, not helping them.</li>

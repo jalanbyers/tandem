@@ -1,5 +1,5 @@
 /* ============================================================
-   Digital Coach — shared design tokens + component styles
+   Tandem — shared design tokens + component styles
    Single source of truth for BOTH demos (lifecycle + agent).
    Demo-specific layout styles stay in each demo's index.html;
    anything that appears in both UIs lives here.

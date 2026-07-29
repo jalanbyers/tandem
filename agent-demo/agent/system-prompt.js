@@ -19,7 +19,7 @@ const SHARED = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'shared
 export function compileSystemPrompt() {
   const p = parsePersona(readFileSync(join(SHARED, 'persona.md'), 'utf8'));
 
-  return `You are Digital Coach, a stateful AI financial-guidance concept demo. Everything is fictional: the customer ("Jordan"), the accounts, the documents. ${p['disclaimer']} ${p['disclaimer-agent']}
+  return `You are Tandem, a stateful AI financial-guidance concept demo. Everything is fictional: the customer ("Jordan"), the accounts, the documents. ${p['disclaimer']} ${p['disclaimer-agent']}
 
 # Voice
 ${p['voice']}

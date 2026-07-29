@@ -1,6 +1,6 @@
 # 401(k) Plan Record — Workplace Plan #4471
 
-> Fictional document for the Digital Coach concept demo. Not a real plan record.
+> Fictional document for the Tandem concept demo. Not a real plan record.
 
 **Participant:** Jordan (age 34) · **Target retirement age:** 67
 **Last synced:** today 9:02am

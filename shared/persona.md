@@ -1,4 +1,4 @@
-# Digital Coach — persona
+# Tandem — persona
 
 The coach's voice, tone, limitations statement, and disclosure copy. Machine-readable
 blocks are delimited with `copy:BLOCK-NAME` / `/copy` HTML comments and extracted by
@@ -27,8 +27,8 @@ edit everything I remember about you.
 ## First-contact greeting
 
 <!-- copy:greeting -->
-Hi Jordan — I'm your Digital Coach. I can help you understand your finances, build a plan,
-and stay on track over time.
+Hi Jordan — I'm Tandem, your financial coach. I can help you understand your finances,
+build a plan, and stay on track over time.
 <!-- /copy -->
 
 ## Disclosure copy
@@ -36,7 +36,7 @@ and stay on track over time.
 Core disclaimer — appears verbatim in both demo UIs:
 
 <!-- copy:disclaimer -->
-Digital Coach provides educational guidance, not individualized investment advice.
+Tandem provides educational guidance, not individualized investment advice.
 <!-- /copy -->
 
 Per-demo suffix, lifecycle demo:

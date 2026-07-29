@@ -1,15 +1,15 @@
-# Prompt for Claude Code — Digital Coach dual-demo monorepo
+# Prompt for Claude Code — Tandem dual-demo monorepo
 
 Run Claude Code from the folder containing the existing demo (`index.html`, `docs/`, `README.md`), then paste everything below the line.
 
 ---
 
-Restructure this project into a monorepo containing two linked demos of "Digital Coach," a stateful AI financial-guidance concept. The existing `index.html` is demo #1. Both demos must be driven by the same shared source of truth so a change in one is automatically reflected in the other.
+Restructure this project into a monorepo containing two linked demos of "Tandem," a stateful AI financial-guidance concept. The existing `index.html` is demo #1. Both demos must be driven by the same shared source of truth so a change in one is automatically reflected in the other.
 
 ## Target structure
 
 ```
-digital-coach/
+tandem/
   shared/                      # single source of truth — both demos import from here
     tokens.css                 # design tokens (extract the :root CSS variables + component styles from index.html)
     states.js                  # conversation state machine: orientation | planning | action | escalation | degraded, allowed transitions, autonomy ceiling per state

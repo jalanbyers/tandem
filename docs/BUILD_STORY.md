@@ -1,4 +1,4 @@
-# Building Digital Coach — a 4D Product Story
+# Building Tandem — a 4D Product Story
 
 *How a stateful, compliant, trust-first financial coaching experience gets built — and how analytics drive its evolution. Written as a portfolio artifact by Alan Byers. Concept exercise only; not a Fidelity product, no real data, no affiliation implied.*
 
@@ -8,7 +8,7 @@
 
 ## The one-sentence frame
 
-> Digital Coach's core product problem is earning the right to be **stateful**: every remembered fact, re-entry moment, and proactive nudge either compounds trust or destroys it — so run Discovery on where memory creates value, Design around verification and autonomy levels, Develop against faithfulness and compliance evals, and Deploy with escalation and abuse guardrails from day one.
+> Tandem's core product problem is earning the right to be **stateful**: every remembered fact, re-entry moment, and proactive nudge either compounds trust or destroys it — so run Discovery on where memory creates value, Design around verification and autonomy levels, Develop against faithfulness and compliance evals, and Deploy with escalation and abuse guardrails from day one.
 
 ---
 
@@ -26,7 +26,7 @@
 - Frequency: financial worry is weekly; advisor contact is yearly.
 - Severity: retirement adequacy is among the highest-severity consumer problems.
 - Competition (2026): Schwab's AI Portfolio Insights and client-facing assistants, Robinhood Cortex Digests, BofA's Erica at 42M-user scale, Vanguard's advisor-facing Expert Insights, and ChatGPT's personal-finance account connections.
-- Contrast — the wedge: robo-advisors act *for* you without explaining; chatbots explain without *knowing* you. Digital Coach owns the middle: guidance that remembers you, shows its sources, and knows when to hand you to a human.
+- Contrast — the wedge: robo-advisors act *for* you without explaining; chatbots explain without *knowing* you. Tandem owns the middle: guidance that remembers you, shows its sources, and knows when to hand you to a human.
 
 **Expectation audit (SOUR).** Stakeholders arrive expecting sci-fi accuracy, observability, and contextual awareness. Today's reality: hallucination is real, models can't truthfully explain their reasoning, and context must be explicitly supplied. Managing that gap is a first-class design deliverable — it shows up in the demo as verification affordances and up-front limitation statements.
 
@@ -79,7 +79,7 @@ Platform AI owns the model. The conversational UX lead owns what "good" means �
 
 ## 4. Deploy — monitor, learn, evolve
 
-**The build/don't-build honesty.** On the standard five-dimension matrix, Digital Coach scores *build* on task complexity and scale but *don't build* on environment constraints — financial guidance is the canonical "errors are extremely costly" domain. That tension is resolved, not ignored: autonomy caps at propose-and-confirm, and the winning architecture is a **deterministic workflow that delegates to agents only where reasoning is required** — preserving the audit trail compliance needs. A strategy agent proposes; an independent compliance-verifier agent cross-validates before anything reaches the customer.
+**The build/don't-build honesty.** On the standard five-dimension matrix, Tandem scores *build* on task complexity and scale but *don't build* on environment constraints — financial guidance is the canonical "errors are extremely costly" domain. That tension is resolved, not ignored: autonomy caps at propose-and-confirm, and the winning architecture is a **deterministic workflow that delegates to agents only where reasoning is required** — preserving the audit trail compliance needs. A strategy agent proposes; an independent compliance-verifier agent cross-validates before anything reaches the customer.
 
 **Operational failure design.**
 

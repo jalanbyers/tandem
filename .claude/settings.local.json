@@ -10,7 +10,8 @@
       "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'Fix agent loop + eval harness issues surfaced by first live eval run *)",
       "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'README: document the stack and expand run instructions *)",
       "Bash(xargs kill)",
-      "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'Reframe copy from interview prep to dual-demo design exploration *)"
+      "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'Reframe copy from interview prep to dual-demo design exploration *)",
+      "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'Rename Digital Coach → Tandem *)"
     ]
   }
 }

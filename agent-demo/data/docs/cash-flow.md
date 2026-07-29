@@ -1,6 +1,6 @@
 # Cash-flow analysis — linked checking (last 6 months)
 
-> Fictional analysis for the Digital Coach concept demo. Categories editable by the user.
+> Fictional analysis for the Tandem concept demo. Categories editable by the user.
 
 | Field | Value |
 |---|---|
