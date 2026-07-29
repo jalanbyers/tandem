@@ -7,7 +7,8 @@
       "Read(//tmp/**)",
       "Bash(grep -v \"^--$\")",
       "Bash(git add *)",
-      "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'Fix agent loop + eval harness issues surfaced by first live eval run *)"
+      "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'Fix agent loop + eval harness issues surfaced by first live eval run *)",
+      "Bash(git -c 'user.name=Alan Byers' -c user.email=jalanbyers@gmail.com commit -q '--author=Alan Byers <jalanbyers@gmail.com>' -m 'README: document the stack and expand run instructions *)"
     ]
   }
 }
