@@ -7,12 +7,10 @@ is two demos running in tandem off one shared core.
 Two linked demos of a **stateful AI financial-guidance concept**, driven by one shared
 source of truth: a scripted showcase that makes every design decision visible, and a live
 agent that proves those same decisions run for real. One spec, two renderings — change a
-rule once in `shared/` and both demos change. A design exploration by Alan Byers in
-conversational UX for regulated domains.
+rule once in `shared/` and both demos change.
 
-> **Disclaimer:** concept exercise only. **Not a Fidelity product**, not affiliated with or
-> endorsed by Fidelity Investments. All data is fictional; no real accounts are connected.
-> Every UI surface carries: *"Tandem provides educational guidance, not
+> **Disclaimer:** concept exercise only. All data is fictional; no real accounts are
+> connected. Every UI surface carries: *"Tandem provides educational guidance, not
 > individualized investment advice."*
 
 ## The two demos
