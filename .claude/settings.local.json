@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(printenv ANTHROPIC_API_KEY)",
+      "Bash(node *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

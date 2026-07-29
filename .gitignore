@@ -1,0 +1,9 @@
+# secrets — never commit
+.env
+
+node_modules/
+.DS_Store
+
+# agent memory-store + feedback data (runtime state, user-deletable)
+agent-demo/data/memory-store.json
+agent-demo/data/feedback-queue.json

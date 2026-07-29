@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Coach — Agent Demo (live)</title>
+<link rel="stylesheet" href="/shared/tokens.css">
+<style>
+  /* Agent-demo-only styles. Everything shared lives in /shared/tokens.css. */
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;animation:blink 1.6s infinite}
+  .rollback-btn{margin-top:6px;font-size:11px;border:1px solid var(--line);background:var(--card);border-radius:6px;padding:3px 9px;cursor:pointer;color:var(--ink-2)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">DC</div>
+  <div>
+    <h1>Digital Coach <span style="font-weight:400;color:var(--ink-2)">· agent demo <span class="live-dot"></span>live</span></h1>
+    <div class="sub" id="headerSub"></div>
+  </div>
+  <nav class="tabs">
+    <button class="active" data-view="demo" onclick="switchView('demo')">Chat</button>
+    <button data-view="metrics" onclick="switchView('metrics')">Metrics <span id="mBadge" style="background:var(--red);color:#fff;border-radius:99px;font-size:9.5px;padding:1px 6px;display:none">●</span></button>
+    <a href="http://localhost:8321/lifecycle-demo/" onclick="this.href=location.protocol==='file:'?'../lifecycle-demo/index.html':this.href" title="Demo #1 — the scripted lifecycle showcase">Lifecycle demo ↗</a>
+  </nav>
+  <div class="state-pill" id="statePill"></div>
+  <button class="toggle-btn" id="debugToggle" onclick="toggleDebug()">🔍 Presenter mode</button>
+</header>
+
+<div class="view active" id="view-demo">
+<div class="layout">
+  <div class="chat-col">
+    <div id="chat"></div>
+    <div class="composer">
+      <div class="chips" id="chips"></div>
+      <div class="inputrow">
+        <input id="freeInput" placeholder="Ask the coach anything — it's a live model with real tools…" onkeydown="if(event.key==='Enter')sendMsg()">
+        <button id="sendBtn" onclick="sendMsg()">Send</button>
+      </div>
+      <div class="disclaim" id="disclaim"></div>
+    </div>
+  </div>
+
+  <aside>
+    <h2 id="memTitle"></h2>
+    <div class="memnote" id="memNote"></div>
+    <div id="memories"></div>
+  </aside>
+</div>
+</div>
+
+<div class="view" id="view-metrics">
+  <div class="metrics-wrap" id="metricsWrap"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { STATES, PILL_ORDER, INITIAL_STATE } from '/shared/states.js';
+import { PANEL_COPY, CONSENT_COPY } from '/shared/memory.js';
+import { AUTONOMY, ESCALATION_OFFER } from '/shared/guardrails.js';
+import { renderMetricsView, FEEDBACK_COPY } from '/shared/telemetry.js';
+import { loadPersona } from '/shared/persona.js';
+
+const persona = await loadPersona('/shared/persona.md');
+const sessionId = 's-' + Math.random().toString(36).slice(2);
+
+document.getElementById('headerSub').textContent = persona['header-sub'];
+document.getElementById('disclaim').textContent = `${persona['disclaimer']} ${persona['disclaimer-agent']}`;
+document.getElementById('memTitle').textContent = PANEL_COPY.title;
+document.getElementById('memNote').innerHTML = PANEL_COPY.note;
+document.getElementById('statePill').innerHTML =
+  PILL_ORDER.map(id => `<span data-s="${id}"${id === INITIAL_STATE ? ' class="active"' : ''}>${STATES[id].label}</span>`).join('');
+
+const chat = document.getElementById('chat');
+let toastT;
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),3400); }
+function switchView(v){
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  if(v==='metrics'){ document.getElementById('mBadge').style.display='none'; renderMetrics(); }
+}
+function toggleDebug(){ document.body.classList.toggle('show-debug'); document.getElementById('debugToggle').classList.toggle('on'); }
+function setState(s){ if(!STATES[s]?.inPill) return; document.querySelectorAll('#statePill span').forEach(el=>el.classList.toggle('active', el.dataset.s===s)); }
+async function renderMetrics(){
+  const M = await (await fetch('/api/telemetry')).json();
+  document.getElementById('metricsWrap').innerHTML = renderMetricsView(M, { note: 'Counters are REAL — they live on the server and reset on server restart.' });
+}
+function badge(){ document.getElementById('mBadge').style.display='inline'; }
+
+/* ---------------- memory panel (live, server-backed) ---------------- */
+async function renderMemories(){
+  const { memories } = await (await fetch('/api/memory')).json();
+  document.getElementById('memories').innerHTML = memories.map(m => `
+    <div class="mem${m.status==='pending-consent'?' pendingc':''}" data-id="${m.id}">
+      <span class="tag ${m.type}">${m.type.toUpperCase()}</span><div class="mtext"></div>
+      <div class="decay">↓ decays: ${m.decay}</div>
+      ${m.status==='pending-consent'?`<div class="pending">${PANEL_COPY.pendingConsent}</div>`:''}
+      <div class="controls"><button data-mem="edit">edit</button><button data-mem="delete">delete</button></div>
+    </div>`).join('');
+  memories.forEach(m => { document.querySelector(`.mem[data-id="${m.id}"] .mtext`).textContent = m.text; });
+}
+document.getElementById('memories').addEventListener('click', async e=>{
+  const b=e.target.closest('button[data-mem]'); if(!b) return;
+  const id=+b.closest('.mem').dataset.id;
+  if(b.dataset.mem==='delete'){
+    await fetch('/api/memory/delete',{method:'POST',body:JSON.stringify({id})});
+    toast(PANEL_COPY.deleteToast); badge();
+  } else {
+    const cur=b.closest('.mem').querySelector('.mtext').textContent;
+    const t=prompt('Edit memory:',cur);
+    if(t) await fetch('/api/memory/edit',{method:'POST',body:JSON.stringify({id,text:t})});
+  }
+  renderMemories();
+});
+renderMemories();
+
+/* ---------------- chat ---------------- */
+function userMsg(text){
+  const d=document.createElement('div'); d.className='msg user';
+  d.innerHTML='<div class="bubble"></div>'; d.querySelector('.bubble').textContent=text;
+  chat.appendChild(d); chat.scrollTop=chat.scrollHeight;
+}
+
+// local first message — same persona.md copy the system prompt compiles from
+{
+  const d=document.createElement('div'); d.className='msg coach';
+  d.innerHTML=`<div class="bubble">${persona['greeting']}<br><br>Before we start: ${persona['limitations']} You'll find that memory in the panel on the right. →</div>
+    <div class="debug"><span class="k">boot:</span> greeting rendered from shared/persona.md — the same blocks compiled into the live system prompt (agent/system-prompt.js)</div>`;
+  chat.appendChild(d);
+}
+
+let busy=false;
+async function sendMsg(){
+  const inp=document.getElementById('freeInput');
+  const text=inp.value.trim();
+  if(!text||busy) return;
+  busy=true; document.getElementById('sendBtn').disabled=true;
+  inp.value=''; userMsg(text);
+
+  const wrap=document.createElement('div'); wrap.className='msg coach';
+  wrap.innerHTML='<div class="bubble typing"><i></i><i></i><i></i></div>';
+  chat.appendChild(wrap); chat.scrollTop=chat.scrollHeight;
+
+  let raw=''; const debugLines=[]; const extras=[]; let degraded=false; let turnMeta=null;
+  const bubble=()=>wrap.querySelector('.bubble');
+
+  const render=()=>{ // live render, [src:x] markers hidden until turn_done resolves them
+    bubble().innerHTML = raw.replace(/\[src:[\w-]+\]/g,'') || '<div class="typing" style="padding:0"><i></i><i></i><i></i></div>';
+    chat.scrollTop=chat.scrollHeight;
+  };
+
+  const res=await fetch('/api/chat',{method:'POST',body:JSON.stringify({sessionId,message:text})});
+  const reader=res.body.getReader(); const dec=new TextDecoder(); let buf='';
+  while(true){
+    const {done,value}=await reader.read(); if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    const parts=buf.split('\n\n'); buf=parts.pop();
+    for(const part of parts){
+      const line=part.split('\n').find(l=>l.startsWith('data:')); if(!line) continue;
+      const ev=JSON.parse(line.slice(5));
+      handleEvent(ev);
+    }
+  }
+
+  function handleEvent(ev){
+    if(ev.type==='delta'){ raw+=ev.text; render(); }
+    else if(ev.type==='tool'){ debugLines.push(`<span class="k">tool:</span> ${ev.name}(${JSON.stringify(ev.input).slice(0,90)})`); }
+    else if(ev.type==='state'){ setState(ev.to); debugLines.push(`<span class="k">state:</span> ${ev.to}`); }
+    else if(ev.type==='guardrail'){ extras.push(`<div class="guardrail">${ev.banner}</div>`); debugLines.push(`<span class="k">guardrail:</span> ${ev.id} · <span class="k">eval label:</span> ${ev.evalLabel}`); badge(); }
+    else if(ev.type==='escalation_offer'){ extras.push(`<div class="escalate">${ev.copy}<br><button data-x="escalate">${ev.button}</button></div>`); debugLines.push(`<span class="k">escalation triggers:</span> ${ev.triggers.join(', ')} (server-detected — banner shown regardless of model)`); }
+    else if(ev.type==='proposal'){
+      const p=ev.proposal;
+      extras.push(`<div class="action-card" data-proposal="${p.id}">
+        <div class="ac-head">${AUTONOMY.actionCardHead}</div>
+        <div class="ac-body">
+          <div class="ac-row"><span>Change</span><b>401(k) contribution: ${p.prevValue}% → ${p.newValue}%</b></div>
+          <div class="ac-row"><span>Per paycheck</span><b>≈ $${p.perPaycheck} more</b></div>
+          <div class="ac-row"><span>Effective</span><b>Next pay period · reversible anytime</b></div>
+        </div>
+        <div class="ac-btns">
+          <button class="primary" data-x="approve">Approve change</button>
+          <button data-x="decline">Not now</button>
+        </div>
+        <div class="ac-note">${AUTONOMY.actionCardNote}</div>
+      </div>`);
+      debugLines.push(`<span class="k">write gated:</span> plan_change_draft → proposal #${p.id} · executes ONLY via /api/confirm (user event) · rollback defined ✓`);
+      badge();
+    }
+    else if(ev.type==='consent_request'){
+      extras.push(`<div class="consent" data-consent-id="${ev.memory.id}">${CONSENT_COPY.ask(`"${ev.memory.text}" <i>(${ev.memory.type})</i>`)}
+        <div class="c-btns"><button class="yes" data-x="consent-yes">${CONSENT_COPY.yesButton}</button><button data-x="consent-no">${CONSENT_COPY.noButton}</button></div></div>`);
+      debugLines.push(`<span class="k">memory:</span> ${ev.memory.type} stored pending-consent — not used until granted (shared/memory.js enforced in memory-store.js)`);
+      renderMemories();
+    }
+    else if(ev.type==='memory_written'){ renderMemories(); badge(); }
+    else if(ev.type==='degraded'){ degraded=true; raw=ev.html; wrap.classList.add('degraded'); render(); setStatePillDegraded(); debugLines.push(`<span class="k">state:</span> degraded · honest disabled state — never improvisation${ev.detail?` · <span class="k">cause:</span> ${ev.detail}`:''}`); badge(); }
+    else if(ev.type==='turn_done'){ turnMeta=ev; finalize(); }
+  }
+
+  function setStatePillDegraded(){ document.querySelectorAll('#statePill span').forEach(el=>el.classList.remove('active')); }
+
+  function finalize(){
+    let html=raw;
+    const cites=turnMeta?.citations||[];
+    cites.forEach((c,i)=>{
+      const pid=`cite-${Date.now()}-${i}`;
+      html=html.replaceAll(`[src:${c.docId}]`,`<span class="citation" data-cite="${pid}">📎 ${c.docId}</span>`);
+      extras.unshift(`<div id="${pid}" class="cite-panel"><div class="src">${c.title}</div>${c.snippet}</div>`);
+    });
+    html=html.replace(/\[src:[\w-]+\]/g,'');
+    if(turnMeta){
+      const f=turnMeta.faithfulness;
+      debugLines.push(`<span class="k">faithfulness:</span> ${f.ok}/${f.total} numeric claims grounded${f.total?` (${(f.ok/f.total).toFixed(2)})`:''}${f.misses.length?` · <span class="k">misses:</span> ${f.misses.map(m=>m.number).join(', ')}`:''}`);
+    }
+    wrap.innerHTML=`<div class="bubble">${html}${extras.join('')}</div>
+      ${debugLines.length?`<div class="debug">${debugLines.join('<br>')}</div>`:''}
+      ${degraded?'':`<div class="feedback"><button data-fb="1">👍</button><button data-fb="-1">👎</button><button data-fb="0">↻ regenerate</button></div>`}`;
+    chat.scrollTop=chat.scrollHeight;
+    busy=false; document.getElementById('sendBtn').disabled=false; badge();
+  }
+  if(!turnMeta) finalize(); // stream ended without turn_done (hard failure)
+}
+
+/* in-bubble interactions */
+chat.addEventListener('click', async e=>{
+  const cite=e.target.closest('.citation');
+  if(cite){
+    const p=document.getElementById(cite.dataset.cite);
+    if(p){ const was=p.classList.contains('open'); p.classList.toggle('open'); if(!was) fetch('/api/cite-open',{method:'POST'}); }
+    return;
+  }
+  const fb=e.target.closest('button[data-fb]');
+  if(fb){
+    const dir=+fb.dataset.fb;
+    if(dir===0) return toast(FEEDBACK_COPY.regenToast);
+    fb.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel','neg'));
+    fb.classList.add('sel'); if(dir<0) fb.classList.add('neg');
+    const tail=[...chat.querySelectorAll('.bubble')].slice(-2).map(b=>b.textContent.slice(0,300));
+    await fetch('/api/feedback',{method:'POST',body:JSON.stringify({dir,transcriptTail:tail})});
+    toast(dir>0?FEEDBACK_COPY.upToast:FEEDBACK_COPY.downToast);
+    return;
+  }
+  const x=e.target.closest('button[data-x]'); if(!x) return;
+  if(x.dataset.x==='escalate'){
+    const r=await (await fetch('/api/escalate',{method:'POST'})).json();
+    toast(r.toast); badge();
+  }
+  else if(x.dataset.x==='approve'||x.dataset.x==='decline'){
+    const card=x.closest('.action-card');
+    const r=await (await fetch('/api/confirm',{method:'POST',body:JSON.stringify({proposalId:+card.dataset.proposal,approve:x.dataset.x==='approve'})})).json();
+    if(r.executed){
+      card.querySelector('.ac-btns').innerHTML=`<div style="padding:9px;font-size:12.5px;color:var(--green-dark);font-weight:600">✓ Approved — ${r.change}. Confirmation #${r.confirmationNumber}. Reversible until ${r.reversibleUntil}. <button class="rollback-btn" data-x="rollback" data-cn="${r.confirmationNumber}">↩ roll back</button></div>`;
+      renderMemories(); badge();
+    } else if(r.declined){ toast(r.note); card.querySelector('.ac-btns').innerHTML='<div style="padding:9px;font-size:12px;color:var(--ink-2)">Declined — no action taken.</div>'; }
+    else toast('Refused: '+(r.error||'unknown'));
+  }
+  else if(x.dataset.x==='rollback'){
+    const r=await (await fetch('/api/rollback',{method:'POST',body:JSON.stringify({confirmationNumber:+x.dataset.cn})})).json();
+    toast(r.rolledBack?('Rolled back — '+r.restored):('Rollback failed: '+r.error));
+  }
+  else if(x.dataset.x==='consent-yes'||x.dataset.x==='consent-no'){
+    const box=x.closest('.consent');
+    await fetch('/api/memory/consent',{method:'POST',body:JSON.stringify({id:+box.dataset.consentId,grant:x.dataset.x==='consent-yes'})});
+    box.innerHTML=x.dataset.x==='consent-yes'?CONSENT_COPY.granted:CONSENT_COPY.declined;
+    renderMemories(); badge();
+  }
+});
+
+/* suggested starters mirror the scripted journey */
+const starters=[
+  'Am I on track for retirement?',
+  'What stock should I buy? 📈',
+  "Honestly I'm freaking out — should I sell everything?",
+  "Let's work on my emergency fund",
+];
+document.getElementById('chips').innerHTML='';
+starters.forEach(s=>{
+  const b=document.createElement('button'); b.className='chip'; b.textContent=s;
+  b.onclick=()=>{ document.getElementById('freeInput').value=s; sendMsg(); };
+  document.getElementById('chips').appendChild(b);
+});
+
+Object.assign(window,{ switchView, toggleDebug, sendMsg });
+</script>
+</body>
+</html>
