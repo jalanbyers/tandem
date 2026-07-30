@@ -114,7 +114,7 @@
         Platform AI owns the model; the UX lead shapes what "good" means and proves it.
         <ul>
           <li><b>Golden dataset first:</b> human-verified (question, expected behavior, expected sources) cases, version-controlled in <b>evals/golden.json</b>, started before build — it gates every later change and is the shared language with risk. Run them: <code>npm run evals</code>.</li>
-          <li><b>RAG for facts, never fine-tuned facts:</b> plan documents, fund data, Fidelity policy retrieved with citations; the RAG Triad (context relevance / groundedness / answer relevance) surfaces in the UI as tappable sources — an eval metric turned into a user-facing trust affordance.</li>
+          <li><b>RAG for facts, never fine-tuned facts:</b> plan documents, fund data, and policy content retrieved with citations; the RAG Triad (context relevance / groundedness / answer relevance) surfaces in the UI as tappable sources — an eval metric turned into a user-facing trust affordance.</li>
           <li><b>Faithfulness target ≈ 1.0</b> on cited figures (0.9 is a floor elsewhere; not in finance). Numbers come from calc tools, not model arithmetic.</li>
           <li><b>Model graders output labels, not scores:</b> COMPLIANT_REFUSAL / NEEDS_REVIEW / VIOLATION — visible in presenter mode on the stock-tip refusal.</li>
           <li><b>Red teaming as first-class UX work:</b> jailbreak-to-stock-tip, PII probes, out-of-scope advice (tax/legal/medical), distressed-user scenarios — multi-turn attacks, private adversarial sets, calibrated judges before they gate releases.</li>

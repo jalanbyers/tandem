@@ -115,7 +115,7 @@ export const TOOL_DEFINITIONS = [
   },
   {
     name: 'escalate_to_human',
-    description: 'Hand off to a licensed Fidelity representative with context. Use on any escalation trigger (distress language, sell decisions, low confidence, missing data, out-of-policy). Appropriate escalation is a success metric.',
+    description: 'Hand off to a licensed financial representative with context. Use on any escalation trigger (distress language, sell decisions, low confidence, missing data, out-of-policy). Appropriate escalation is a success metric.',
     input_schema: {
       type: 'object',
       properties: {

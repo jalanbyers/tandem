@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "private": true,
   "type": "module",
-  "description": "Dual-demo monorepo: a stateful AI financial-guidance concept (lifecycle showcase + live agent) driven by one shared source of truth. Portfolio artifact — not a Fidelity product, fictional data only.",
+  "description": "Dual-demo monorepo: a stateful AI financial-guidance concept (lifecycle showcase + live agent) driven by one shared source of truth. Portfolio artifact — fictional data only, no affiliation with any financial institution.",
   "author": "Alan Byers <jalanbyers@gmail.com>",
   "scripts": {
     "dev:lifecycle": "python3 -m http.server 8321",

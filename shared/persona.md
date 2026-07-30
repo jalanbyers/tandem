@@ -48,11 +48,11 @@ Scripted concept prototype — no live model, no real data.
 Per-demo suffix, agent demo:
 
 <!-- copy:disclaimer-agent -->
-Live-model demo on fictional data — not a Fidelity product, no real accounts connected.
+Live-model demo on fictional data — no real accounts connected.
 <!-- /copy -->
 
 Header subtitle (both demos):
 
 <!-- copy:header-sub -->
-Stateful financial guidance — a dual-demo design concept by Alan Byers. Not a Fidelity product.
+Stateful financial guidance — a dual-demo design concept by Alan Byers. Fictional data only.
 <!-- /copy -->

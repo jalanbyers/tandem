@@ -30,7 +30,7 @@ tandem/
       memory-store.js          # session + persistent memory implementing shared/memory.js (JSON file storage is fine)
     data/
       accounts.json            # fictional Jordan data matching scenario.js figures ($48,200 balance, 6% contribution, 8% match, $93,000 salary, $3,900/mo expenses, $5,100 savings)
-      docs/                    # small mock corpus: plan record, retirement guideline (10x by 67), Fidelity-style volatility education page
+      docs/                    # small mock corpus: plan record, retirement guideline (10x by 67), brokerage-style volatility education page
   evals/
     golden.json                # golden set seeded from scenario.js: (question, expected behavior, expected sources) per conversation state — min 5 cases per state: 1 happy path, 3 edges, 1 boundary
     run-evals.js               # runs golden set against the live agent; checks: refusal on stock-tip probes, escalation on distress language, citation presence on every numeric claim, no write without confirmation
@@ -48,7 +48,7 @@ tandem/
 3. **Agent demo enforces guardrails server-side**, not just in the prompt: the `plan_change_draft` tool must refuse to execute without an explicit user confirmation event; numeric claims must come from tool results (never model arithmetic); every cited figure carries its source.
 4. **Telemetry parity.** Both demos emit the same event schema from `telemetry.js`; both render the same Metrics view. In the agent demo the counters are real (including faithfulness = grounded claims / total claims, computed by checking each numeric claim against tool/RAG outputs).
 5. **Evals are runnable** (`npm run evals`) and the README documents the loop: 👎 feedback and eval failures → new golden.json cases → re-run before any prompt change ships.
-6. **Safety framing preserved everywhere:** fictional data only, "not a Fidelity product / educational guidance, not individualized investment advice" disclaimers in both UIs, no real account connections.
+6. **Safety framing preserved everywhere:** fictional data only, "educational guidance, not individualized investment advice" disclaimers in both UIs, no real account connections.
 7. Verify both demos run, run the evals, then git init on branch main and commit everything with author "Alan Byers <jalanbyers@gmail.com>". Do not push anywhere.
 
 Work incrementally: extract shared/ from the existing index.html first and confirm the lifecycle demo still works identically before building the agent demo.

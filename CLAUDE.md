@@ -1,6 +1,6 @@
 # Tandem — dual-demo monorepo
 
-Portfolio artifact by Alan Byers exploring conversational UX / AI product design. Concept only: **not a Fidelity product, fictional data, no real accounts.** Every UI surface keeps the disclaimer "educational guidance, not individualized investment advice."
+Portfolio artifact by Alan Byers exploring conversational UX / AI product design. Concept only: **fictional data, no real accounts, no affiliation with any financial institution.** Every UI surface keeps the disclaimer "educational guidance, not individualized investment advice."
 
 ## What this is
 

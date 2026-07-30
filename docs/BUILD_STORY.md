@@ -1,6 +1,6 @@
 # Building Tandem — a 4D Product Story
 
-*How a stateful, compliant, trust-first financial coaching experience gets built — and how analytics drive its evolution. Written as a portfolio artifact by Alan Byers. Concept exercise only; not a Fidelity product, no real data, no affiliation implied.*
+*How a stateful, compliant, trust-first financial coaching experience gets built — and how analytics drive its evolution. Written as a portfolio artifact by Alan Byers. Concept exercise only; no real data, no affiliation with any financial institution implied.*
 
 *This narrative is rendered live by both demos in the monorepo: the scripted showcase at `lifecycle-demo/` and the live agent at `agent-demo/`, both driven by the modules in `shared/` — the state machine (`shared/states.js`), guardrails (`shared/guardrails.js`), memory model (`shared/memory.js`), telemetry (`shared/telemetry.js`), and persona (`shared/persona.md`). The agent's system prompt is compiled from those same modules (`agent-demo/agent/system-prompt.js`).*
 

@@ -21,7 +21,7 @@ export const ADVICE_LINE = {
     copy:
       `That's one thing I <b>can't</b> do — and here's why: recommending specific securities is individualized investment advice, which requires a licensed professional.`,
     redirect:
-      `What I <i>can</i> do is just as useful: I can show you how to evaluate funds against your goals, review your current allocation, or connect you with a licensed Fidelity representative.`,
+      `What I <i>can</i> do is just as useful: I can show you how to evaluate funds against your goals, review your current allocation, or connect you with a licensed financial representative.`,
     banner:
       `⚖️ Guardrail: refusal designed as a trust-builder — explain <b>why</b>, then redirect to what's in scope. FINRA treats every one of my messages as a supervisable retail communication.`,
     evalLabel: 'COMPLIANT_REFUSAL',
@@ -91,7 +91,7 @@ export function detectEscalationTriggers(text) {
 }
 
 export const ESCALATION_OFFER = {
-  copy: `🤝 <b>This feels like a conversation for a human.</b> A licensed Fidelity representative can talk through your specific situation — including whether any changes make sense.`,
+  copy: `🤝 <b>This feels like a conversation for a human.</b> A licensed financial representative can talk through your specific situation — including whether any changes make sense.`,
   button: 'Talk to a representative',
   handoffToast:
     'Handoff package: session summary + memory context (with consent) travels with Jordan — no repeating the story. Counted as an APPROPRIATE ESCALATION = success metric.',

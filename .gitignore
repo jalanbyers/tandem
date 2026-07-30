@@ -3,6 +3,7 @@
 
 node_modules/
 .DS_Store
+.claude/settings.local.json
 
 # agent memory-store + feedback data (runtime state, user-deletable)
 agent-demo/data/memory-store.json

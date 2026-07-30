@@ -1,7 +1,7 @@
 # Retirement savings guideline — how much is "on track"?
 
-> Fictional education page in the style of Fidelity guidance. Educational content, not
-> individualized investment advice.
+> Fictional education page in the style of brokerage guidance content. Educational
+> content, not individualized investment advice.
 
 ## The 10x rule of thumb
 

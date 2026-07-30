@@ -1,7 +1,7 @@
 # Time in the market vs timing the market
 
-> Fictional education page in the style of Fidelity Viewpoints. Educational content, not
-> individualized investment advice.
+> Fictional education page in the style of a brokerage market-education library.
+> Educational content, not individualized investment advice.
 
 Market drops feel urgent, but reacting to them is historically expensive: missing just the
 **10 best market days over 20 years cut returns roughly in half** in historical studies.
