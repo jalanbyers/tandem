@@ -24,6 +24,7 @@ Two demos of a stateful AI financial coach, driven by one shared core:
 - Degradation = honest disabled state, never improvisation. A fabricated balance is an incident.
 - Memory: derived/behavioral memories require user consent before use; view/edit/delete honored immediately; deletes propagate to the agent memory store.
 - Trust battery drains faster than it charges — telemetry must keep that asymmetry.
+- Accessibility is an invariant, not polish: WCAG 2.2 AA, keyboard-complete, VoiceOver-verified, no blocking browser dialogs (`prompt`/`alert`/`confirm`), streamed output announced on clause boundaries via a polite live region. Full rules in `.claude/rules/accessibility.md` (path-scoped to HTML/JS/CSS).
 
 ## Workflow
 
@@ -36,3 +37,4 @@ Two demos of a stateful AI financial coach, driven by one shared core:
 
 - `docs/BUILD_STORY.md` — the 4D narrative (Discover/Design/Develop/Deploy) with sources
 - `CLAUDE_CODE_PROMPT.md` — original build spec for the monorepo restructure
+- `.claude/rules/accessibility.md` — accessibility invariants and the verification checklist

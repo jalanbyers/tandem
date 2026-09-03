@@ -8,6 +8,13 @@
  * consent gating, scenario↔mock-data figure parity, single-source integrity,
  * and the degraded (keyless) server's refusal to fabricate numbers.
  *
+ * Tier 1b — ACCESSIBILITY (always runs): the mechanizable half of
+ * .claude/rules/accessibility.md — live-region attributes and clause-boundary
+ * buffering, accessible names on every icon-only control, the tab and
+ * disclosure patterns, a :focus-visible rule, reduced-motion handling, and the
+ * prohibition on prompt()/alert()/confirm(). Necessary, not sufficient:
+ * keyboard, VoiceOver and 400% zoom verification remain manual.
+ *
  * Tier 2 — LIVE (runs when ANTHROPIC_API_KEY is set in .env or env): every
  * golden case is sent to the running agent and its behavior checked —
  * refusal on stock-tip probes, escalation on distress, citation presence on
@@ -130,6 +137,101 @@ check('after consent grant → usable', memoryStore.usableMemories().some(m => m
 memoryStore.deleteMemory(mDer.id);
 check('delete honored immediately', !memoryStore.listMemories().some(m => m.id === mDer.id));
 check('delete is audit-logged', memoryStore.auditLog().some(e => e.op === 'delete'));
+
+/* ---- accessibility tier (deterministic; see .claude/rules/accessibility.md) ----
+   Only the mechanizable parts live here. Passing these is necessary and not
+   sufficient — keyboard, VoiceOver and zoom verification stay manual. */
+console.log('\n═══ Tier 1b: accessibility checks (deterministic, no model) ═══');
+
+const SRC = {
+  tokens: readFileSync(join(ROOT, 'shared/tokens.css'), 'utf8'),
+  a11y: readFileSync(join(ROOT, 'shared/a11y.js'), 'utf8'),
+  lifecycle: readFileSync(join(ROOT, 'lifecycle-demo/index.html'), 'utf8'),
+  agent: readFileSync(join(ROOT, 'agent-demo/index.html'), 'utf8'),
+  scenario: readFileSync(join(ROOT, 'shared/scenario.js'), 'utf8'),
+  telemetry: readFileSync(join(ROOT, 'shared/telemetry.js'), 'utf8'),
+};
+const count = (s, re) => (s.match(re) || []).length;
+/** Comments explain WHY these APIs are banned, so scan code only. */
+const stripComments = s => s
+  .replace(/<!--[\s\S]*?-->/g, '')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/(^|[^:'"\w])\/\/[^\n]*/g, '$1');
+
+console.log('\n— no blocking browser dialogs anywhere in the client sources —');
+for (const [name, src] of Object.entries(SRC)) {
+  const hits = /\b(?:window\.)?(prompt|alert|confirm)\(/.exec(stripComments(src));
+  check(`${name}: no prompt()/alert()/confirm()`, !hits, hits ? `found ${hits[1]}(` : '');
+}
+
+console.log('\n— shared focus, motion and target-size tokens (never per demo) —');
+check('tokens.css defines :focus-visible', /:focus-visible\s*\{/.test(SRC.tokens));
+check('tokens.css defines a --focus token', /--focus\s*:/.test(SRC.tokens));
+check('tokens.css never kills an outline without a replacement', !/outline\s*:\s*none/.test(SRC.tokens));
+check('tokens.css honours prefers-reduced-motion', /@media\s*\(prefers-reduced-motion\s*:\s*reduce\)/.test(SRC.tokens));
+check('tokens.css defines .sr-only once, shared', count(SRC.tokens, /\.sr-only\s*\{/g) === 1);
+check('tokens.css sets a 24px minimum target size (WCAG 2.2 · 2.5.8)', /--target-min\s*:\s*24px/.test(SRC.tokens));
+for (const demo of ['lifecycle', 'agent']) {
+  check(`${demo} demo: does not redefine .sr-only locally`, !/\.sr-only\s*\{/.test(SRC[demo]));
+  check(`${demo} demo: does not hard-code a focus ring`, !/:focus-visible\s*\{/.test(SRC[demo]));
+}
+
+console.log('\n— streaming output announces politely, on clause boundaries —');
+check('a11y.js live region is polite', /aria-live'?,\s*'polite'/.test(SRC.a11y));
+check('a11y.js stream region is non-atomic', /aria-atomic[^\n]*atomic/.test(SRC.a11y) && /atomic:\s*false/.test(SRC.a11y));
+check('a11y.js sets aria-relevant="additions text"', /aria-relevant'?,\s*'additions text'/.test(SRC.a11y));
+check('a11y.js buffers to a clause boundary, not per token', /CLAUSE_BOUNDARY/.test(SRC.a11y));
+check('a11y.js announces the turn boundary', /turnComplete/.test(SRC.a11y));
+check('a11y.js respects prefers-reduced-motion', /prefers-reduced-motion/.test(SRC.a11y));
+check('agent demo buffers deltas through the announcer', /announcer\.push\(/.test(SRC.agent));
+check('agent demo announces a thinking state, not a bare spinner', /A11Y_COPY\.thinking/.test(SRC.agent));
+
+console.log('\n— structure, landmarks and the tab pattern —');
+for (const demo of ['lifecycle', 'agent']) {
+  const src = SRC[demo];
+  check(`${demo} demo: exactly one <h1>`, count(src, /<h1[\s>]/g) === 1);
+  check(`${demo} demo: has a <main> landmark`, /<main[\s>]/.test(src));
+  check(`${demo} demo: has a skip link to it`, /class="skip-link"[^>]*href="#main"/.test(src));
+  check(`${demo} demo: transcript is an ordered list, not a stack of divs`, /<ol id="chat"/.test(src));
+  check(`${demo} demo: transcript is labelled`, /<ol id="chat"[^>]*aria-label=/.test(src));
+  check(`${demo} demo: memory panel is a labelled aside`, /<aside aria-labelledby="memTitle">/.test(src));
+  check(`${demo} demo: full tab pattern (tablist/tab/tabpanel)`,
+    /role="tablist"/.test(src) && /role="tab"/.test(src) && /role="tabpanel"/.test(src));
+  check(`${demo} demo: every tab declares aria-selected + aria-controls`,
+    count(src, /role="tab"/g) === count(src, /aria-controls="view-/g) &&
+    count(src, /role="tab"/g) === count(src, /aria-selected=/g));
+  check(`${demo} demo: every tabpanel names its tab`,
+    count(src, /role="tabpanel"/g) === count(src, /role="tabpanel"[^>]*aria-labelledby="tab-/g));
+  check(`${demo} demo: composer has a real <label>`, /<label class="sr-only" for="freeInput">/.test(src));
+  check(`${demo} demo: starter chips are a labelled group`, /id="chips" role="group" aria-label=/.test(src));
+  check(`${demo} demo: no clickable div or span`, !/<(?:div|span)\b[^>]*\son(?:click|keydown)=/.test(src));
+  check(`${demo} demo: no inline event handlers at all`, !/\son(?:click|keydown|submit)="/.test(src));
+  check(`${demo} demo: imports the shared a11y module`, /from '[./]*\/?shared\/a11y\.js'/.test(src));
+}
+
+console.log('\n— accessible names on icon-only controls —');
+check('feedback 👍/👎 carry aria-label and aria-pressed',
+  /data-fb="1"[^>]*aria-pressed[^>]*aria-label/.test(SRC.a11y) && /data-fb="-1"[^>]*aria-pressed[^>]*aria-label/.test(SRC.a11y));
+check('memory controls name their target, not the verb',
+  /memEdit:\s*text\s*=>/.test(SRC.a11y) && /memDelete:\s*text\s*=>/.test(SRC.a11y));
+for (const demo of ['lifecycle', 'agent']) {
+  check(`${demo} demo: labels memory controls with the memory text`, /labelMemoryControls/.test(SRC[demo]));
+  check(`${demo} demo: presenter toggle exposes pressed state`, /id="debugToggle"[^>]*aria-pressed/.test(SRC[demo]));
+}
+
+console.log('\n— citations are disclosures, panel adjacent to its trigger —');
+const citeUnit = /<button type="button" class="citation"[^>]*aria-expanded="false"[^>]*aria-controls="([^"]+)"[^>]*>[\s\S]{0,80}?<\/button>`?\s*\+?\s*`?<div id="\$?\{?\1\}?"[^>]*class="cite-panel"/;
+check('scripted scenario emits trigger + panel as one adjacent unit', citeUnit.test(SRC.scenario));
+check('scripted scenario has no orphan citePanel helper', !/citePanel/.test(SRC.scenario));
+check('agent demo emits the panel immediately after the trigger',
+  /class="citation"[^>]*aria-controls="\$\{pid\}"[\s\S]{0,200}?<div id="\$\{pid\}"/.test(SRC.agent));
+
+console.log('\n— state is never encoded in colour alone —');
+check('metric cards carry a text health flag', /HEALTH_FLAG/.test(SRC.telemetry) && /m-flag/.test(SRC.telemetry));
+check('trust battery bar is decorative; the value is text', /class="battery" aria-hidden="true"/.test(SRC.telemetry));
+check('active conversation state has a non-colour marker', /\.state-pill li\.active::before/.test(SRC.tokens));
+check('degraded conversation state has its own marker', /\.state-pill li\.degraded-active::before/.test(SRC.tokens));
+check('selected feedback carries a mark, not just a fill', /\.feedback button\.sel::after/.test(SRC.tokens));
 
 console.log('\n— degraded state: keyless server must not fabricate numbers —');
 const degradedCases = GOLDEN.cases.filter(c => c.state === 'degraded');

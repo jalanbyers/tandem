@@ -10,77 +10,90 @@
   .story-wrap{flex:1;overflow-y:auto;padding:24px 6%}
   .story-wrap h2{font-size:17px;margin-bottom:4px}
   .story-wrap .lede{font-size:12.5px;color:var(--ink-2);margin-bottom:18px;max-width:780px}
+  .phases{list-style:none;margin:0;padding:0}
   .phase{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:12px;overflow:hidden}
-  .phase>button{width:100%;text-align:left;background:none;border:none;padding:15px 18px;font-size:14px;font-weight:650;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--ink)}
-  .phase .num{width:26px;height:26px;border-radius:50%;background:var(--green);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;flex-shrink:0}
+  .phase h3{margin:0;font-size:inherit;font-weight:inherit}
+  .phase h3>button{width:100%;text-align:left;background:none;border:none;padding:15px 18px;font-size:14px;font-weight:650;cursor:pointer;display:flex;align-items:center;gap:10px;color:var(--ink);font-family:inherit}
+  .phase .num{width:26px;height:26px;border-radius:50%;background:var(--green-solid);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;flex-shrink:0}
   .phase .caret{margin-left:auto;color:var(--ink-2);transition:.25s}
-  .phase.open .caret{transform:rotate(90deg)}
+  .phase h3>button[aria-expanded="true"] .caret{transform:rotate(90deg)}
   .phase .ph-body{display:none;padding:0 18px 16px 54px;font-size:13px;line-height:1.65;color:var(--ink-2)}
-  .phase.open .ph-body{display:block}
+  .phase .ph-body.open{display:block}
   .ph-body b{color:var(--ink)}
   .ph-body ul{margin:6px 0 10px 16px}
   .ph-body li{margin-bottom:5px}
-  .see-it{display:inline-block;background:#f2f9f0;border:1px solid var(--green);color:var(--green-dark);border-radius:7px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer;margin:2px 4px 2px 0}
+  .see-it{display:inline-block;background:#f2f9f0;border:1px solid var(--green);color:var(--green-dark);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;margin:2px 4px 2px 0;font-family:inherit;text-align:left}
+  .see-it:hover{background:#e2f1de}
   .quote{border-left:3px solid var(--green);padding:8px 12px;background:#f8faf8;border-radius:0 8px 8px 0;margin:8px 0;font-style:italic}
+  @media (max-width:760px){ .story-wrap{padding:18px 4%} .phase .ph-body{padding-left:18px} }
 </style>
 </head>
 <body>
 
+<a class="skip-link" href="#main" id="skipLink">Skip to the conversation</a>
+
 <header>
-  <div class="logo">T</div>
+  <div class="logo" aria-hidden="true">T</div>
   <div>
     <h1>Tandem <span style="font-weight:400;color:var(--ink-2)">· lifecycle demo (scripted)</span></h1>
-    <div class="sub" id="headerSub"></div>
+    <p class="sub" id="headerSub"></p>
   </div>
-  <nav class="tabs">
-    <button class="active" data-view="demo" onclick="switchView('demo')">Live demo</button>
-    <button data-view="story" onclick="switchView('story')">Build story (4D)</button>
-    <button data-view="metrics" onclick="switchView('metrics')">Metrics <span id="mBadge" style="background:var(--red);color:#fff;border-radius:99px;font-size:9.5px;padding:1px 6px;display:none">●</span></button>
-    <a href="../agent-demo/" title="Demo #2 — the live agent (needs the Node server: npm run dev:agent)">Agent demo ↗</a>
+  <nav class="tabs" aria-label="Demo sections">
+    <div role="tablist" aria-label="Demo sections">
+      <button type="button" role="tab" id="tab-demo" data-view="demo" aria-controls="view-demo" aria-selected="true" tabindex="0" class="active">Live demo</button>
+      <button type="button" role="tab" id="tab-story" data-view="story" aria-controls="view-story" aria-selected="false" tabindex="-1">Build story (4D)</button>
+      <button type="button" role="tab" id="tab-metrics" data-view="metrics" aria-controls="view-metrics" aria-selected="false" tabindex="-1">Metrics <span class="badge" id="mBadge" hidden>new activity</span></button>
+    </div>
+    <a href="../agent-demo/">Agent demo <span aria-hidden="true">↗</span><span class="sr-only">(opens demo #2 — the live agent, which needs the Node server running)</span></a>
   </nav>
-  <div class="state-pill" id="statePill"></div>
-  <button class="toggle-btn" id="debugToggle" onclick="toggleDebug()">🔍 Presenter mode</button>
+  <ul class="state-pill" id="statePill" aria-label="Conversation state"></ul>
+  <button type="button" class="toggle-btn" id="debugToggle" aria-pressed="false"><span aria-hidden="true">🔍</span> Presenter mode</button>
 </header>
 
+<main id="main" tabindex="-1">
+
 <!-- ================= DEMO VIEW ================= -->
-<div class="view active" id="view-demo">
+<div class="view active" id="view-demo" role="tabpanel" aria-labelledby="tab-demo">
 <div class="layout">
   <div class="chat-col">
-    <div id="chat"></div>
+    <ol id="chat" aria-label="Conversation with the coach"></ol>
     <div class="composer">
-      <div class="chips" id="chips"></div>
-      <div class="inputrow">
-        <input id="freeInput" placeholder="Type a message (demo will respond to the highlighted paths)…" onkeydown="if(event.key==='Enter')freeSend()">
-        <button onclick="freeSend()">Send</button>
-      </div>
-      <div class="disclaim" id="disclaim"></div>
+      <div class="chips" id="chips" role="group" aria-label="Suggested replies"></div>
+      <form class="inputrow" id="composerForm">
+        <label class="sr-only" for="freeInput">Message the coach</label>
+        <input id="freeInput" name="message" autocomplete="off" aria-describedby="disclaim"
+               placeholder="Type a message (demo will respond to the highlighted paths)…">
+        <button type="submit">Send</button>
+      </form>
+      <p class="disclaim" id="disclaim"></p>
     </div>
   </div>
 
-  <aside>
+  <aside aria-labelledby="memTitle">
     <h2 id="memTitle"></h2>
-    <div class="memnote" id="memNote"></div>
-    <div id="memories"></div>
+    <p class="memnote" id="memNote"></p>
+    <ul id="memories"></ul>
   </aside>
 </div>
 </div>
 
 <!-- ================= METRICS VIEW ================= -->
-<div class="view" id="view-metrics">
+<div class="view" id="view-metrics" role="tabpanel" aria-labelledby="tab-metrics" tabindex="0">
   <div class="metrics-wrap" id="metricsWrap"></div>
 </div>
 
 <!-- ================= BUILD STORY VIEW ================= -->
-<div class="view" id="view-story">
+<div class="view" id="view-story" role="tabpanel" aria-labelledby="tab-story" tabindex="0">
   <div class="story-wrap">
     <h2>How this was built — the 4D method, applied</h2>
-    <div class="lede">The demo isn't a mock-up of a chat window; it's a set of deliberate product decisions made visible. Each phase below names the frameworks used and links to the moment in the demo where the decision shows up. The rules themselves live in <b>shared/</b> — the same modules that compile into the agent demo's system prompt.</div>
+    <p class="lede">The demo isn't a mock-up of a chat window; it's a set of deliberate product decisions made visible. Each phase below names the frameworks used and links to the moment in the demo where the decision shows up. The rules themselves live in <b>shared/</b> — the same modules that compile into the agent demo's system prompt.</p>
 
-    <div class="quote" style="font-size:13px">"Tandem's core product problem is earning the right to be <b>stateful</b>: every remembered fact, re-entry moment, and proactive nudge either compounds trust or destroys it."</div>
+    <blockquote class="quote" style="font-size:13px">"Tandem's core product problem is earning the right to be <b>stateful</b>: every remembered fact, re-entry moment, and proactive nudge either compounds trust or destroys it."</blockquote>
 
-    <div class="phase open">
-      <button onclick="togglePhase(this)"><span class="num">1</span> Discover — where does conversational AI create value? <span class="caret">▶</span></button>
-      <div class="ph-body">
+    <ul class="phases">
+    <li class="phase">
+      <h3><button type="button" aria-expanded="true" aria-controls="ph1"><span class="num" aria-hidden="true">1</span> Discover — where does conversational AI create value? <span class="caret" aria-hidden="true">▶</span></button></h3>
+      <div class="ph-body open" id="ph1">
         <b>Persona:</b> the mass-affluent / workplace-plan customer with no human advisor — an <i>access-expansion</i> play, not a high-net-worth upsell. Jobs-to-be-done framing: "When I worry about money (weekly), I want a plan that knows me, so I stop feeling behind" — tested against the non-AI baseline (static planning tools) before assuming AI is the answer.
         <ul>
           <li><b>Journey stages:</b> Get Oriented → Plan → Act → Stay on Track. Listing activities per stage exposed the core insight: financial guidance is <b>twenty conversations across months</b>, not one session. That's why "re-entry moments" are a first-class design object.</li>
@@ -88,13 +101,13 @@
           <li><b>Impact × feasibility converge:</b> v1 = orientation + plan check-ins (read-only, verifiable, low blast radius). Not trade execution. Feasibility in finance = "can the intelligence do this <i>compliantly</i>."</li>
           <li><b>SOUR expectation audit:</b> stakeholders expect sci-fi accuracy and contextual awareness; today's reality demands verification affordances and explicitly supplied context. The gap is a design deliverable, not a footnote.</li>
         </ul>
-        <span class="see-it" onclick="seeIt()">See it live: the demo's v1 scope is guidance + one gated write</span>
+        <button type="button" class="see-it" data-goto="demo">See it live: the demo's v1 scope is guidance + one gated write</button>
       </div>
-    </div>
+    </li>
 
-    <div class="phase">
-      <button onclick="togglePhase(this)"><span class="num">2</span> Design — the heart of conversational UX work <span class="caret">▶</span></button>
-      <div class="ph-body">
+    <li class="phase">
+      <h3><button type="button" aria-expanded="false" aria-controls="ph2"><span class="num" aria-hidden="true">2</span> Design — the heart of conversational UX work <span class="caret" aria-hidden="true">▶</span></button></h3>
+      <div class="ph-body" id="ph2">
         <b>Stateful conversation design:</b> four explicit states (orientation / planning / action / escalation) with designed transitions — visible in the header pill. Not one open-ended chat. The machine is <b>shared/states.js</b>.
         <ul>
           <li><b>Sheridan autonomy per action:</b> guidance &amp; education at levels 1–4; pre-filled changes at level 5 (execute only on approval); level 6+ prohibited — never auto-execute financial actions. The action card <i>is</i> this decision rendered as UI (<b>shared/guardrails.js</b>).</li>
@@ -103,14 +116,15 @@
           <li><b>Re-entry moments:</b> session bridges ("last time we decided…"), Fogg-timed nudges (fire at high-motivation moments — a volatility login is one — and make acting nearly effortless), graceful cold starts.</li>
           <li><b>Compliance-to-UX translation:</b> refusals designed as trust-builders — explain <i>why</i>, then redirect to what's in scope. Disclosures as conversational moments, not legal walls. FINRA applies existing communications rules (Rule 3110 supervision, recordkeeping) to chatbots — so every message is designed as a <i>retail communication</i>, retained and supervisable.</li>
           <li><b>Safety by design:</b> limitations stated up front, degradation cues (outage = disabled state, not improvisation), easy feedback, constrained inputs.</li>
+          <li><b>Accessibility as a design invariant:</b> WCAG 2.2 AA is scoped in from the start, not retrofitted — streamed replies announced on clause boundaries in a polite live region, every citation a real disclosure, no blocking browser dialogs, and the rules themselves version-controlled in <b>.claude/rules/accessibility.md</b>.</li>
         </ul>
-        <span class="see-it" onclick="seeIt()">See it live: 📎 citations, action card, consent prompt, degradation demo</span>
+        <button type="button" class="see-it" data-goto="demo">See it live: 📎 citations, action card, consent prompt, degradation demo</button>
       </div>
-    </div>
+    </li>
 
-    <div class="phase">
-      <button onclick="togglePhase(this)"><span class="num">3</span> Develop — evals are where UX earns trust with risk partners <span class="caret">▶</span></button>
-      <div class="ph-body">
+    <li class="phase">
+      <h3><button type="button" aria-expanded="false" aria-controls="ph3"><span class="num" aria-hidden="true">3</span> Develop — evals are where UX earns trust with risk partners <span class="caret" aria-hidden="true">▶</span></button></h3>
+      <div class="ph-body" id="ph3">
         Platform AI owns the model; the UX lead shapes what "good" means and proves it.
         <ul>
           <li><b>Golden dataset first:</b> human-verified (question, expected behavior, expected sources) cases, version-controlled in <b>evals/golden.json</b>, started before build — it gates every later change and is the shared language with risk. Run them: <code>npm run evals</code>.</li>
@@ -119,14 +133,15 @@
           <li><b>Model graders output labels, not scores:</b> COMPLIANT_REFUSAL / NEEDS_REVIEW / VIOLATION — visible in presenter mode on the stock-tip refusal.</li>
           <li><b>Red teaming as first-class UX work:</b> jailbreak-to-stock-tip, PII probes, out-of-scope advice (tax/legal/medical), distressed-user scenarios — multi-turn attacks, private adversarial sets, calibrated judges before they gate releases.</li>
           <li><b>Eval-driven releases:</b> five-case minimum per conversation state (happy path + 3 edges + 1 boundary) written before build; expected pass rates gate each release.</li>
+          <li><b>Accessibility is an eval tier, not a checklist:</b> live-region attributes, accessible names, focus-visible rules and the ban on blocking browser dialogs are machine-checked in the same suite that gates policy — cheap regression gates for the parts that are mechanizable.</li>
         </ul>
-        <span class="see-it" onclick="seeIt()">See it live: presenter mode shows eval labels &amp; faithfulness on every turn</span>
+        <button type="button" class="see-it" data-goto="demo">See it live: presenter mode shows eval labels &amp; faithfulness on every turn</button>
       </div>
-    </div>
+    </li>
 
-    <div class="phase">
-      <button onclick="togglePhase(this)"><span class="num">4</span> Deploy — monitor, learn, evolve <span class="caret">▶</span></button>
-      <div class="ph-body">
+    <li class="phase">
+      <h3><button type="button" aria-expanded="false" aria-controls="ph4"><span class="num" aria-hidden="true">4</span> Deploy — monitor, learn, evolve <span class="caret" aria-hidden="true">▶</span></button></h3>
+      <div class="ph-body" id="ph4">
         The 2026 reality check: fully autonomous agents are ~2–3% of production workloads. The winning architecture is a <b>deterministic workflow that delegates to agents only where reasoning is required</b> — which preserves the audit trail compliance needs.
         <ul>
           <li><b>Build/don't-build honesty:</b> Tandem scores "build" on complexity and scale but "don't build" on environment constraints (errors are costly in finance) — which is exactly why autonomy is capped at propose-and-confirm and why a compliance-verifier agent cross-validates the strategy agent.</li>
@@ -135,15 +150,18 @@
           <li><b>Analytics drive evolution</b> — see the Metrics tab: quality signals → weekly golden-set triage → eval-gated releases → Sheridan-level promotions per state. Containment is <i>not</i> the goal: in finance you <b>want</b> some escalations, and "appropriate escalation" is counted as success. Industry benchmark context: new assistants contain 35–50%, mature ones 65–80% — but low CSAT with high containment means you're exhausting customers, not helping them.</li>
           <li><b>See it running for real:</b> the <b>agent demo</b> is the same shared core driven by a live model — server-enforced confirmation gating, tool-sourced numbers, real telemetry.</li>
         </ul>
-        <span class="see-it" onclick="switchView('metrics')">See it live: open the Metrics tab</span>
+        <button type="button" class="see-it" data-goto="metrics">See it live: open the Metrics tab</button>
       </div>
-    </div>
+    </li>
+    </ul>
 
-    <div class="lede" style="margin-top:16px">Full narrative with sources: <b>docs/BUILD_STORY.md</b> in this repo.</div>
+    <p class="lede" style="margin-top:16px">Full narrative with sources: <b>docs/BUILD_STORY.md</b> in this repo.</p>
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script type="module">
 import { STATES, PILL_ORDER, INITIAL_STATE } from '../shared/states.js';
@@ -151,6 +169,11 @@ import { PANEL_COPY } from '../shared/memory.js';
 import { createTelemetry, renderMetricsView, FEEDBACK_COPY } from '../shared/telemetry.js';
 import { buildScenario, FREE_TEXT_RESPONSE } from '../shared/scenario.js';
 import { loadPersona } from '../shared/persona.js';
+import {
+  A11Y_COPY, createStatusRegion, createStreamAnnouncer, initTabs, initSkipLink,
+  toggleDisclosure, openInlineMemoryEdit, createTurn, feedbackRowHtml,
+  setFeedbackPressed, scrollToLatest, speechText, actionOutcomeHtml,
+} from '../shared/a11y.js';
 
 /* ============ shared-core boot ============ */
 const persona = await loadPersona('../shared/persona.md');
@@ -158,28 +181,47 @@ const SCENARIO = buildScenario(persona);
 const T = createTelemetry();
 const M = T.counters;
 
+const announce = createStatusRegion();
+const announcer = createStreamAnnouncer({ announce });
+
 document.getElementById('headerSub').textContent = persona['header-sub'];
 document.getElementById('disclaim').textContent = `${persona['disclaimer']} ${persona['disclaimer-lifecycle']}`;
 document.getElementById('memTitle').textContent = PANEL_COPY.title;
 document.getElementById('memNote').innerHTML = PANEL_COPY.note;
 document.getElementById('statePill').innerHTML =
-  PILL_ORDER.map(id => `<span data-s="${id}"${id === INITIAL_STATE ? ' class="active"' : ''}>${STATES[id].label}</span>`).join('');
+  PILL_ORDER.map(id => `<li data-s="${id}"${id === INITIAL_STATE ? ' class="active"' : ''}>${STATES[id].label}${id === INITIAL_STATE ? ` <span class="sr-only">(${A11Y_COPY.stateCurrent})</span>` : ''}</li>`).join('');
 
-/* ============ views ============ */
-function switchView(v){
-  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-  document.getElementById('view-'+v).classList.add('active');
-  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
-  if(v==='metrics'){ document.getElementById('mBadge').style.display='none'; renderMetrics(); }
-}
-function seeIt(){ switchView('demo'); toast('Watch for it in the conversation ↓'); }
-function togglePhase(btn){ btn.parentElement.classList.toggle('open'); }
-function toggleDebug(){ document.body.classList.toggle('show-debug'); document.getElementById('debugToggle').classList.toggle('on'); }
+/* ============ views (full tab pattern lives in shared/a11y.js) ============ */
+const badgeEl = document.getElementById('mBadge');
+const tabs = initTabs(document.querySelector('[role="tablist"]'), view => {
+  if (view === 'metrics') { badgeEl.hidden = true; renderMetrics(); }
+});
+const switchView = v => tabs.select(v);
+initSkipLink(document.getElementById('skipLink'), 'main');
+
+document.getElementById('debugToggle').addEventListener('click', e => {
+  const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+  e.currentTarget.setAttribute('aria-pressed', String(on));
+  document.body.classList.toggle('show-debug', on);
+  announce(on ? A11Y_COPY.presenterOn : A11Y_COPY.presenterOff);
+});
+
+/* Build-story phases are disclosures, not a bespoke open/closed class. */
+document.querySelectorAll('.phase h3 > button').forEach(btn => {
+  btn.addEventListener('click', () =>
+    toggleDisclosure(btn, document.getElementById(btn.getAttribute('aria-controls'))));
+});
+document.querySelectorAll('.see-it').forEach(btn => {
+  btn.addEventListener('click', () => {
+    switchView(btn.dataset.goto);
+    if (btn.dataset.goto === 'demo') toast('Watch for it in the conversation below.');
+  });
+});
 
 /* ============ telemetry ============ */
 function log(evt, delta){
   T.log(evt, delta);
-  document.getElementById('mBadge').style.display='inline';
+  badgeEl.hidden = false;
   if(document.getElementById('view-metrics').classList.contains('active')) renderMetrics();
 }
 function renderMetrics(){
@@ -190,70 +232,112 @@ function renderMetrics(){
 const chat = document.getElementById('chat');
 const chipsEl = document.getElementById('chips');
 const memEl = document.getElementById('memories');
+const input = document.getElementById('freeInput');
 
-function setState(s){ document.querySelectorAll('#statePill span').forEach(el=>el.classList.toggle('active', el.dataset.s===s)); }
+function setState(s){
+  document.querySelectorAll('#statePill li').forEach(el=>{
+    const on = el.dataset.s === s;
+    el.classList.toggle('active', on);
+    el.querySelector('.sr-only')?.remove();
+    if(on){
+      const mark=document.createElement('span');
+      mark.className='sr-only'; mark.textContent=` (${A11Y_COPY.stateCurrent})`;
+      el.appendChild(mark);
+    }
+  });
+  if(STATES[s]) announce(A11Y_COPY.stateChanged(STATES[s].label));
+}
+
 let toastT;
 function toast(msg){
-  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
-  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'), 3400);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT);
+  toastT=setTimeout(()=>{ t.classList.remove('show'); t.textContent=''; }, 3400);
 }
 
 /* ============ memory panel ============ */
 function addMemory(type, text, decay){
-  const d = document.createElement('div');
-  d.className='mem';
-  d.innerHTML = `<span class="tag ${type}">${type.toUpperCase()}</span><div>${text}</div>
-    ${decay?`<div class="decay">↓ decays: ${decay}</div>`:''}
-    <div class="controls"><button data-mem="edit">edit</button><button data-mem="delete">delete</button></div>`;
-  memEl.appendChild(d); log('memWrites');
+  const li = document.createElement('li');
+  li.className='mem';
+  li.innerHTML = `<span class="tag ${type}">${type.toUpperCase()}</span><p class="mtext"></p>
+    ${decay?`<p class="decay">↓ decays: ${decay}</p>`:''}
+    <div class="controls">
+      <button type="button" data-mem="edit">edit</button>
+      <button type="button" data-mem="delete">delete</button>
+    </div>`;
+  li.querySelector('.mtext').textContent = text;
+  labelMemoryControls(li);
+  memEl.appendChild(li); log('memWrites');
 }
+
+/** Icon-and-verb controls must name their target, not just the verb. */
+function labelMemoryControls(card){
+  const text = card.querySelector('.mtext').textContent;
+  card.querySelector('[data-mem="edit"]')?.setAttribute('aria-label', A11Y_COPY.memEdit(text));
+  card.querySelector('[data-mem="delete"]')?.setAttribute('aria-label', A11Y_COPY.memDelete(text));
+}
+
 memEl.addEventListener('click', e=>{
   const b=e.target.closest('button[data-mem]'); if(!b) return;
-  const m=b.closest('.mem');
+  const card=b.closest('.mem');
   if(b.dataset.mem==='delete'){
-    m.classList.add('removed');
-    m.querySelector('.controls').innerHTML=`<i style="font-size:10.5px;color:var(--ink-2)">${PANEL_COPY.deletedInline}</i>`;
+    card.classList.add('removed');
+    card.querySelector('.controls').innerHTML=`<p class="deleted-note">${PANEL_COPY.deletedInline}</p>`;
     log('memDeletes'); toast(PANEL_COPY.deleteToast);
   } else {
-    const div=m.querySelector('div:not(.controls):not(.decay)');
-    const t=prompt('Edit memory:',div.textContent); if(t) div.textContent=t;
+    openInlineMemoryEdit({
+      card, trigger:b, value: card.querySelector('.mtext').textContent, announce,
+      onSave: next => { card.querySelector('.mtext').textContent = next; labelMemoryControls(card); },
+    });
   }
 });
 
 /* ============ chat primitives ============ */
 function userMsg(text){
-  const d=document.createElement('div'); d.className='msg user';
-  d.innerHTML=`<div class="bubble"></div>`; d.querySelector('.bubble').textContent=text;
-  chat.appendChild(d); chat.scrollTop=chat.scrollHeight;
+  const li=createTurn('user');
+  li.innerHTML+=`<div class="bubble"></div>`;
+  li.querySelector('.bubble').textContent=text;
+  chat.appendChild(li); scrollToLatest(chat);
 }
+
 function coachMsg(ev){
   return new Promise(res=>{
-    const t=document.createElement('div'); t.className='msg coach'+(ev.degraded?' degraded':'');
-    t.innerHTML='<div class="bubble typing"><i></i><i></i><i></i></div>';
-    chat.appendChild(t); chat.scrollTop=chat.scrollHeight;
+    const li=createTurn('coach', ev.degraded?'degraded':'');
+    li.innerHTML+=`<div class="bubble typing" role="status"><span class="sr-only">${A11Y_COPY.thinking}</span><i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i></div>`;
+    chat.appendChild(li); scrollToLatest(chat);
     setTimeout(()=>{
-      t.innerHTML=`<div class="bubble">${ev.html}</div>
+      li.querySelector('.bubble').remove();
+      li.insertAdjacentHTML('beforeend', `<div class="bubble">${ev.html}</div>
         ${ev.debug?`<div class="debug">${ev.debug}</div>`:''}
-        ${ev.noFeedback?'':`<div class="feedback"><button data-fb="1">👍</button><button data-fb="-1">👎</button><button data-fb="0">↻ regenerate</button></div>`}`;
-      chat.scrollTop=chat.scrollHeight;
+        ${ev.noFeedback?'':feedbackRowHtml()}`);
+      scrollToLatest(chat);
+      announcer.say(li, ev.html, { note: ev.degraded ? A11Y_COPY.turnDegraded : A11Y_COPY.turnComplete });
       if(ev.claims){ M.claimsTotal+=ev.claims; M.claimsGrounded+=ev.claims; T.impact('groundedClaims'); log('claimsTotal',0); }
       res();
     }, 900);
   });
 }
-function divider(text){ const d=document.createElement('div'); d.className='session-divider'; d.textContent=text; chat.appendChild(d); }
+
+function divider(text){
+  const li=createTurn('system','session-divider');
+  li.insertAdjacentHTML('beforeend', `<span>${text}</span>`);
+  chat.appendChild(li);
+}
+
 function setChips(list){
   chipsEl.innerHTML='';
   (list||[]).forEach(c=>{
     const b=document.createElement('button');
+    b.type='button';
     b.className='chip'+(c.cls?' '+c.cls:''); b.textContent=c.label;
-    b.onclick=()=>{ chipsEl.innerHTML=''; go(c.to); };
+    b.addEventListener('click', ()=>{ chipsEl.innerHTML=''; go(c.to, true); });
     chipsEl.appendChild(b);
   });
 }
 
 /* ============ scenario engine ============ */
-async function runStep(step){
+async function runStep(step, userInitiated){
   if(step.user) userMsg(step.user);
   for(const ev of step.events||[]){
     if(ev.type==='coach') await coachMsg(ev);
@@ -264,76 +348,83 @@ async function runStep(step){
     else if(ev.type==='divider') divider(ev.text);
   }
   setChips(step.chips);
+  // The chip the user activated was removed from the DOM, so focus would be
+  // lost to <body>. Park it on the composer — one Shift+Tab from the new chips.
+  if(userInitiated) input.focus();
 }
-function go(to){
+function go(to, userInitiated){
   if(to==='metrics') return switchView('metrics');
   if(to==='restart') return location.reload();
-  runStep(SCENARIO[to]);
+  runStep(SCENARIO[to], userInitiated);
 }
 
 /* ============ in-message interactions (event delegation) ============ */
 chat.addEventListener('click', async e=>{
   const cite=e.target.closest('.citation');
   if(cite){
-    const p=document.getElementById(cite.dataset.cite);
-    const was=p.classList.contains('open');
-    p.classList.toggle('open'); if(!was){ log('citesOpened'); T.impact('citeOpen'); }
+    const panel=document.getElementById(cite.getAttribute('aria-controls'));
+    const src=panel.querySelector('.src').textContent;
+    const opened=toggleDisclosure(cite, panel, {
+      labelOpen: A11Y_COPY.citeHide(src), labelClosed: A11Y_COPY.citeShow(src),
+    });
+    if(opened){ log('citesOpened'); T.impact('citeOpen'); }
     return;
   }
+
   const fb=e.target.closest('button[data-fb]');
   if(fb){
     const dir=+fb.dataset.fb;
     if(dir===0) return toast(FEEDBACK_COPY.regenToast);
-    fb.parentElement.querySelectorAll('button').forEach(x=>x.classList.remove('sel','neg'));
-    fb.classList.add('sel'); if(dir<0) fb.classList.add('neg');
+    setFeedbackPressed(fb);
     if(dir>0){ log('up'); T.impact('up'); toast(FEEDBACK_COPY.upToast); }
     else { log('down'); T.impact('down'); toast(FEEDBACK_COPY.downToast); }
     return;
   }
-  const consentBtn=e.target.closest('button[data-consent]');
-  if(consentBtn){
-    const box=consentBtn.closest('.consent');
+
+  const x=e.target.closest('button[data-x]'); if(!x) return;
+  const action=x.dataset.x;
+
+  if(action==='consent-yes'||action==='consent-no'){
+    const box=x.closest('.consent');
     const cfg=SCENARIO.consent;
-    if(consentBtn.dataset.consent==='yes'){
+    if(action==='consent-yes'){
       box.innerHTML=cfg.grantedHtml;
       addMemory(cfg.memory.mtype, cfg.memory.text, cfg.memory.decay);
       log('consentGrants'); T.impact('consentGrant');
     } else {
       box.innerHTML=cfg.declinedHtml;
     }
+    announce(speechText(box.innerHTML));
     setChips(cfg.chips);
+    input.focus();
     return;
   }
-  const act=e.target.closest('button[data-action]');
-  if(act){
-    const cfg=SCENARIO.actionCard;
-    if(act.dataset.action==='approve'){
-      const ac=document.getElementById('ac1');
-      ac.querySelector('.ac-btns').innerHTML=cfg.approvedHtml;
-      addMemory(cfg.approvedMemory.mtype, cfg.approvedMemory.text, cfg.approvedMemory.decay);
-      log('actionsApproved'); T.impact('actionApproved');
-      for(const ev of cfg.followUp.events) await coachMsg(ev);
-      setChips(cfg.followUp.chips);
-    }
-    else if(act.dataset.action==='review') toast(cfg.reviewToast);
-    else if(act.dataset.action==='decline') toast(cfg.declineToast);
-    else if(act.dataset.action==='escalate'){ log('escalations'); T.impact('escalation'); toast(SCENARIO.escalate.toast); }
+
+  const cfg=SCENARIO.actionCard;
+  if(action==='approve'){
+    document.getElementById('ac1').querySelector('.ac-btns').innerHTML=cfg.approvedHtml;
+    addMemory(cfg.approvedMemory.mtype, cfg.approvedMemory.text, cfg.approvedMemory.decay);
+    log('actionsApproved'); T.impact('actionApproved');
+    announce(cfg.approvedAnnouncement);
+    for(const ev of cfg.followUp.events) await coachMsg(ev);
+    setChips(cfg.followUp.chips);
+    input.focus();
   }
+  else if(action==='review') toast(cfg.reviewToast);
+  else if(action==='decline') toast(cfg.declineToast);
+  else if(action==='escalate'){ log('escalations'); T.impact('escalation'); toast(SCENARIO.escalate.toast); }
 });
 
 /* ============ free text ============ */
-function freeSend(){
-  const inp=document.getElementById('freeInput');
-  if(!inp.value.trim()) return;
-  userMsg(inp.value); inp.value='';
+document.getElementById('composerForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  if(!input.value.trim()) return;
+  userMsg(input.value); input.value='';
   coachMsg({ html: FREE_TEXT_RESPONSE.html, debug: FREE_TEXT_RESPONSE.debug, noFeedback:true });
-}
-
-/* expose handlers used by inline onclick in static views */
-Object.assign(window, { switchView, seeIt, togglePhase, toggleDebug, freeSend });
+});
 
 /* boot */
-runStep(SCENARIO.intro);
+runStep(SCENARIO.intro, false);
 </script>
 </body>
 </html>

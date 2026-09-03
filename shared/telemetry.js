@@ -114,25 +114,37 @@ export const REVIEW_CADENCE = [
 export const FLYWHEEL_HTML =
   `<b>The evolution flywheel:</b> production traces <span class="arrow">→</span> quality signals (👍/👎, corrections, escalations, citation-opens) <span class="arrow">→</span> weekly triage promotes failures into the <b>golden dataset</b> <span class="arrow">→</span> eval suite gates every release (faithfulness ≥ 0.9 in finance — practically 1.0 on cited figures) <span class="arrow">→</span> passing states earn autonomy promotions on the Sheridan scale <span class="arrow">→</span> more capable coach generates richer traces. <br>Trust charges slowly and drains fast — the battery below is the churn leading-indicator, reviewed monthly.`;
 
+/**
+ * Health flag text. Card health must never be encoded in colour alone, so
+ * every card states its status in words as well (accessibility invariant).
+ */
+export const HEALTH_FLAG = { good: '✓ on target', warn: '⚠ needs attention' };
+
 /** Full inner HTML for the .metrics-wrap container — used verbatim by both demos. */
 export function renderMetricsView(M, { note = 'Counters reset on reload.' } = {}) {
   const cards = metricCards(M);
+  const batteryCls = M.battery < 30 ? 'warn' : 'good';
   const grid = cards.map(c =>
-    `<div class="m-card ${c.cls}"><div class="m-label">${c.label}</div><div class="m-value">${c.value}</div><div class="m-target">${c.target}</div><div class="m-why">${c.why}</div></div>`
+    `<li class="m-card ${c.cls}"><div class="m-label">${c.label}</div><div class="m-value">${c.value}</div><div class="m-target">${c.target}</div>
+     <div class="m-flag">${HEALTH_FLAG[c.cls]}</div><div class="m-why">${c.why}</div></li>`
   ).join('') +
-    `<div class="m-card ${M.battery < 30 ? 'warn' : 'good'}" style="grid-column:1/-1"><div class="m-label">Trust battery (churn leading-indicator)</div>
-     <div class="battery"><i style="width:${M.battery}%"></i></div>
+    `<li class="m-card ${batteryCls}" style="grid-column:1/-1"><div class="m-label">Trust battery (churn leading-indicator)</div>
+     <div class="battery" aria-hidden="true"><i style="width:${M.battery}%"></i></div>
      <div class="m-target">${M.battery}% — charges with grounded answers &amp; kept promises; drains ~${TRUST_BATTERY.drainMultiplier}× faster on errors and misremembered facts</div>
-     <div class="m-why">Proxies instrumented: correction rate, override rate, re-verification behavior, abandonment. Sustained drain = churn warning reviewed monthly. Design implication is asymmetric: preventing one egregious failure beats adding several delights.</div></div>`;
+     <div class="m-flag">${HEALTH_FLAG[batteryCls]}</div>
+     <div class="m-why">Proxies instrumented: correction rate, override rate, re-verification behavior, abandonment. Sustained drain = churn warning reviewed monthly. Design implication is asymmetric: preventing one egregious failure beats adding several delights.</div></li>`;
   const cadence = REVIEW_CADENCE.map(r =>
-    `<tr><td><b>${r.cadence}</b></td><td>${r.review}</td><td>${r.decision}</td></tr>`).join('');
+    `<tr><th scope="row">${r.cadence}</th><td>${r.review}</td><td>${r.decision}</td></tr>`).join('');
   return `
     <h2>${METRICS_LEDE.title}</h2>
     <div class="lede">${METRICS_LEDE.lede} ${note}</div>
-    <div class="m-grid">${grid}</div>
+    <ul class="m-grid" aria-label="${METRICS_LEDE.title}">${grid}</ul>
     <div class="cadence">
-      <h3>Review cadence — how signals become product changes</h3>
-      <table><tr><th>Cadence</th><th>Review</th><th>Decision it feeds</th></tr>${cadence}</table>
+      <h3 id="cadenceCaption">Review cadence — how signals become product changes</h3>
+      <table aria-labelledby="cadenceCaption">
+        <thead><tr><th scope="col">Cadence</th><th scope="col">Review</th><th scope="col">Decision it feeds</th></tr></thead>
+        <tbody>${cadence}</tbody>
+      </table>
     </div>
     <div class="flywheel">${FLYWHEEL_HTML}</div>`;
 }

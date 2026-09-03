@@ -62,6 +62,8 @@ The demo's action card is this decision rendered as UI: proposal → approval �
 
 **Safety by design.** Limitations communicated up front (HAX "initially" guidelines); degradation cues — during an outage or low-confidence moment the coach degrades to an honest disabled state, never improvisation (the demo's peak-load simulation); constrained inputs (every open text field is jailbreak surface); moderated outputs; easy issue reporting.
 
+**Accessibility as a design invariant (WCAG 2.2 AA).** Scoped in with the guardrails rather than retrofitted, because a conversational interface fails differently than a form: the output arrives token by token, and a live region that re-announces every token is worse for a screen reader user than silence. So streamed replies are buffered and flushed on clause boundaries into a polite live region, with the turn boundary announced so the user knows the coach has settled. Citations are real disclosures (`aria-expanded`, panel adjacent to its trigger), the transcript is a list whose turns are labelled by speaker, and state is never carried by colour alone — the trust battery, guardrail and escalation cues all have a text or shape counterpart. Blocking browser dialogs are prohibited outright: the memory editor is an inline labelled field that moves focus in, restores it on exit, and announces the result. The shared behaviours live in `shared/a11y.js` and the focus, motion and target-size tokens in `shared/tokens.css`, so neither demo can drift from the other. Rules: `.claude/rules/accessibility.md`.
+
 ---
 
 ## 3. Develop — evals are where UX earns trust with risk partners
@@ -73,6 +75,7 @@ Platform AI owns the model. The conversational UX lead owns what "good" means �
 - **Faithfulness ≈ 1.0 on cited figures.** The common 0.9 threshold is a floor elsewhere, not in finance. Arithmetic runs through calc tools, not model math.
 - **Model graders emit labels, not scores:** COMPLIANT_REFUSAL / NEEDS_REVIEW / VIOLATION — auditable by compliance, visible in the demo's presenter mode.
 - **Eval-driven releases.** Minimum five cases per conversation state (one happy path, three edges, one boundary) written before build; expected pass rates per state gate each release; eval config always matches production config. In this repo: `evals/run-evals.js` runs a deterministic policy tier (server-enforced guardrails) plus a live-agent tier against `agent-demo/`.
+- **Accessibility is an eval tier, not a checklist.** The mechanizable half of the accessibility rules runs in the same suite that gates policy (`Tier 1b`): live-region attributes and clause-boundary buffering, accessible names on every icon-only control, the tab and disclosure patterns, a `:focus-visible` rule, reduced-motion handling, and a hard ban on `prompt`/`alert`/`confirm`. Cheap regression gates — and explicitly *necessary, not sufficient*: keyboard, screen-reader and 400% zoom verification stay manual.
 - **Red teaming as first-class UX work.** Jailbreak-to-stock-tip, PII probes, out-of-scope advice (tax/legal/medical), competitor endorsements, and distressed-user scenarios — a user saying "I'm going to lose everything" is a UX design case, not just a safety case. Multi-turn attack suites and private adversarial datasets, with LLM judges calibrated against human-labeled sets before they gate anything.
 
 ---
