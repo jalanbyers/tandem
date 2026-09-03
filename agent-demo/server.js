@@ -148,6 +148,18 @@ function memoryContext() {
   return '\n\n# Current consented memories\n' + mems.map(m => `- [${m.type}] ${m.text}`).join('\n');
 }
 
+/**
+ * Join two streamed passes of one reply, split apart by a tool call.
+ * A completed sentence before the call means the model moved on to a new
+ * thought, so it earns a paragraph break; anything else gets a single space,
+ * which is never wrong mid-sentence. Returns '' when the seam already reads
+ * correctly.
+ */
+function separatorFor(before, after) {
+  if (/(\s|<br\s*\/?>)$/i.test(before) || /^\s/.test(after)) return '';
+  return /[.!?…:]["')\]]*$/.test(before) ? '<br><br>' : ' ';
+}
+
 /* ---------------- the agent loop (one user turn) ---------------- */
 
 async function handleChat(session, userText, send) {
@@ -171,6 +183,10 @@ async function handleChat(session, userText, send) {
     const blocks = [];
     let current = null;
     let stopReason = null;
+    // A tool call splits one reply into separate streamed passes. Joining them
+    // raw runs the last sentence before the call into the first one after it
+    // ("...to answer that properly.Here's where things stand").
+    let needsSeparator = finalText !== '';
 
     for await (const ev of anthropicStream(session.history)) {
       if (ev.type === 'content_block_start') {
@@ -178,7 +194,19 @@ async function handleChat(session, userText, send) {
           ? { type: 'tool_use', id: ev.content_block.id, name: ev.content_block.name, inputJson: '' }
           : { type: 'text', text: '' };
       } else if (ev.type === 'content_block_delta') {
-        if (ev.delta.type === 'text_delta') { current.text += ev.delta.text; send({ type: 'delta', text: ev.delta.text }); }
+        if (ev.delta.type === 'text_delta') {
+          if (needsSeparator) {
+            needsSeparator = false;
+            const sep = separatorFor(finalText, ev.delta.text);
+            // The separator is presentation only: it goes to the client and to
+            // finalText, never into `blocks` — session.history must stay exactly
+            // what the model produced.
+            if (sep) { finalText += sep; send({ type: 'delta', text: sep }); }
+          }
+          current.text += ev.delta.text;
+          finalText += ev.delta.text;
+          send({ type: 'delta', text: ev.delta.text });
+        }
         else if (ev.delta.type === 'input_json_delta') current.inputJson += ev.delta.partial_json;
       } else if (ev.type === 'content_block_stop') {
         if (current?.type === 'tool_use') current.input = current.inputJson ? JSON.parse(current.inputJson) : {};
@@ -197,7 +225,6 @@ async function handleChat(session, userText, send) {
         ? { type: 'text', text: b.text }
         : { type: 'tool_use', id: b.id, name: b.name, input: b.input });
     session.history.push({ role: 'assistant', content: apiBlocks });
-    finalText += blocks.filter(b => b.type === 'text').map(b => b.text).join('');
 
     if (stopReason !== 'tool_use') break;
 
