@@ -35,13 +35,14 @@ if pgrep -x VoiceOver >/dev/null; then
     case "$probe" in
       *-1743*|*"Not authorized"*|*"not allowed"*)
         say "✗" "Automation permission denied"
-        say " " "  → System Settings → Privacy & Security → Automation"
-        say " " "     enable this terminal's access to VoiceOver" ;;
+        say " " "  → approve the 'wants to control VoiceOver' prompt when it appears,"
+        say " " "     or re-enable it in System Settings → Privacy & Security → Automation"
+        say " " "     (entries only exist there AFTER a first request — nothing to pre-add)" ;;
       *"AppleScript"*|*-1728*)
         say "✗" "VoiceOver is not accepting AppleScript"
         say " " "  → VoiceOver Utility → General →"
         say " " "     check 'Allow VoiceOver to be controlled with AppleScript'"
-        say " " "     open it: /System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverUtility" ;;
+        say " " "     open it: open -a 'VoiceOver Utility'" ;;
       *)
         say "✗" "AppleScript probe failed: $probe" ;;
     esac

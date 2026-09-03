@@ -22,12 +22,30 @@ preflight; it names whichever is missing and changes nothing:
 bash .claude/skills/voiceover-audit/scripts/preflight.sh
 ```
 
-1. **VoiceOver running** (⌘F5). It speaks aloud and captures the keyboard.
-2. **VoiceOver Utility → General → "Allow VoiceOver to be controlled with
-   AppleScript."** Open with
-   `/System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOverUtility`
-3. **System Settings → Privacy & Security → Automation** — the terminal running
-   these commands needs permission to control VoiceOver.
+1. **VoiceOver Utility → General → "Allow VoiceOver to be controlled with
+   AppleScript."** Open with `open -a "VoiceOver Utility"` (the app lives at
+   `/System/Applications/Utilities/VoiceOver Utility.app`).
+2. **VoiceOver running** (⌘F5). It speaks aloud and captures the keyboard.
+3. **Automation permission — approve the prompt, do not go hunting for it.**
+   macOS creates Automation entries on first request, so there is nothing to
+   pre-set: the first run of `vo-capture.mjs` raises *"Terminal wants to control
+   VoiceOver"*. Click OK. Only then does the host terminal appear under System
+   Settings → Privacy & Security → Automation with a VoiceOver toggle.
+
+   Identify the app to approve by walking up from the shell — it is the owning
+   GUI app, not `node` or `claude`:
+
+   ```bash
+   pid=$$; while [ "$pid" -ne 1 ]; do read -r ppid comm <<< "$(ps -o ppid=,comm= -p $pid)"; \
+     echo "$comm"; pid=$ppid; done
+   ```
+
+**Accessibility permission is NOT required** for this workflow. Reading
+`content of last phrase` is an Apple Event, governed by Automation. The
+Accessibility list governs driving another app's UI through the accessibility
+API — needed only if the capture is extended to send synthetic keystrokes via
+System Events, which it deliberately does not: you click the chip in Safari
+yourself. Add the terminal there only if something actually fails for want of it.
 
 Use **Safari**, not Chrome. The rule specifies VoiceOver + Safari because
 WebKit's accessibility implementation is what the pairing is verified against;
