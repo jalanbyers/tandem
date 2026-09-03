@@ -26,9 +26,25 @@ rule once in `shared/` and both demos change.
 Deliberately minimal — **zero runtime dependencies, no build step, no framework**.
 `npm install` is never needed; there is no `node_modules`.
 
+| Layer | Choice | Why |
+|---|---|---|
+| UI | Browser-native ES modules + one CSS file of custom properties | No build step means the demo a reviewer opens is the source they read |
+| Server | Single-file Node ≥ 18, `node:` built-ins only | The whole agent loop fits in one readable file |
+| Model | Anthropic Messages API over `fetch`, `stream: true` | Relayed to the browser as Server-Sent Events |
+| Retrieval | Keyword-overlap scoring over Markdown chunks | Right-sized for a 4-doc corpus; no vector store to operate |
+| State | JSON files (gitignored) | Delete to reset; no database to stand up |
+| Accessibility | `shared/a11y.js` + tokens in `tokens.css` | WCAG 2.2 AA as a shared invariant, not per-demo polish |
+| Tests | Plain Node runner, no framework | Spawns the real server and asserts against it |
+| Language | JavaScript (ESM), no TypeScript, no transpiler | Nothing between the file on disk and the running code |
+
 - **`shared/` + both UIs:** plain browser-native ES modules (`<script type="module">`)
   and one shared stylesheet of CSS custom properties. The lifecycle demo is served by any
   static file server; it stays dependency-free by design.
+- **Accessibility (`shared/a11y.js` + `shared/tokens.css`):** the streamed-output live
+  region and its clause-boundary buffering, the tab and disclosure patterns, the inline
+  memory editor that replaces `prompt()`, and every accessible-name string — imported by
+  both demos so neither can drift. Focus, motion and target-size tokens sit alongside the
+  design tokens. Target: **WCAG 2.2 AA**.
 - **`agent-demo/server.js`:** a single-file Node server (requires **Node ≥ 18**, uses only
   `node:` built-ins — `http`, `fs`, `path`). It talks to the
   [Anthropic Messages API](https://docs.anthropic.com) directly over `fetch` with
@@ -93,6 +109,12 @@ npm run evals
   server-side — guardrail detectors against all 25 golden cases, the write-confirmation
   gate + rollback, memory consent gating, scenario↔mock-data figure parity, single-source
   integrity, and the keyless server's refusal to fabricate numbers.
+- **Tier 1b — accessibility** (always runs, no key): the mechanizable half of
+  `.claude/rules/accessibility.md` — live-region attributes and clause-boundary buffering,
+  accessible names on every icon-only control, the tab and disclosure patterns, a
+  `:focus-visible` rule, reduced-motion handling, and a hard ban on
+  `prompt`/`alert`/`confirm`. Necessary, not sufficient: keyboard, screen-reader and 400%
+  zoom verification stay manual (see `.claude/skills/voiceover-audit/`).
 - **Tier 2 — live agent** (runs when a key is present in `.env`): every golden case runs
   against the real agent — refusal on stock-tip probes, escalation on distress language,
   citation presence on every numeric claim, no write without confirmation. Each case runs
@@ -105,7 +127,9 @@ live tier to take a few minutes (20 real model conversations).
 
 ```
 shared/            ← single source of truth — BOTH demos import from here
-  tokens.css         design tokens + every shared component style
+  tokens.css         design tokens + every shared component style (incl. focus/motion/target-size)
+  a11y.js            live region + clause-boundary buffering, tab & disclosure patterns,
+                     inline memory editor, accessible-name copy
   states.js          conversation state machine (orientation → planning → action → escalation, + degraded)
   memory.js          memory types (explicit/derived/behavioral), decay, consent rules
   guardrails.js      advice-line refusal, escalation triggers, Sheridan L5 cap, degradation rules
@@ -152,6 +176,27 @@ The agent demo does not rely on the model obeying its prompt:
   audit-logged.
 - **No key / API failure → honest degraded state.** A fabricated balance is an incident.
 
+## Accessibility is an invariant, not polish
+
+Target **WCAG 2.2 AA**, treated on the same footing as the guardrails — because a
+conversational interface fails differently than a form. Output arrives token by token, and
+a live region that re-announces on every token is worse for a screen-reader user than
+silence.
+
+- **Streamed replies buffer and flush on clause boundaries** into a polite, non-atomic live
+  region, and the turn boundary is announced so the user knows the coach has settled.
+- **Citations are real disclosures** — `aria-expanded`, with the panel emitted immediately
+  after its trigger so it reads in place.
+- **No blocking browser dialogs.** The memory editor is an inline labelled field that moves
+  focus in, restores it to the trigger on exit, and announces the result.
+- **State is never colour alone** — the trust battery, guardrail, escalation and metric
+  health cues each carry a text or shape counterpart.
+- **Reflows to 320px**, respects `prefers-reduced-motion`, 24px minimum target size.
+
+Rules live in `.claude/rules/accessibility.md`; the mechanizable half is gated by Tier 1b
+of the eval suite, and `.claude/skills/voiceover-audit/` captures what VoiceOver actually
+speaks for the half that isn't.
+
 ## Telemetry parity
 
 Both demos emit the identical event schema from `shared/telemetry.js` and render the
@@ -171,6 +216,9 @@ per conversation state: 1 happy path, 3 edges, 1 boundary) — and the suite re-
 
 - [docs/BUILD_STORY.md](docs/BUILD_STORY.md) — the 4D narrative (Discover / Design /
   Develop / Deploy) with framework credits and sources
+- `.claude/rules/accessibility.md` — the accessibility invariants and verification checklist
+- `.claude/skills/voiceover-audit/` — VoiceOver + Safari capture and assertions for
+  streamed output (macOS; needs Accessibility permissions)
 - `CLAUDE_CODE_PROMPT.md` — the build spec this restructure was generated from
 
 ## Author
