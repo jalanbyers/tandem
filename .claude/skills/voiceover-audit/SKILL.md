@@ -69,9 +69,19 @@ node .claude/skills/voiceover-audit/scripts/vo-capture.mjs --seconds 30 \
   --out /tmp/vo-transcript.jsonl
 ```
 
-It prints phrases live as VoiceOver speaks them. Within those 30 seconds, click
-a starter chip in Safari — "Am I on track for retirement?" is the best case
-because it streams several clauses, calls tools, and ends with citations.
+Within those seconds, activate a starter chip in Safari — "Am I on track for
+retirement?" is the best case because it streams several clauses, calls tools,
+and ends with citations. With VoiceOver on, `Ctrl+Option+Space` activates the
+item under the VoiceOver cursor.
+
+> **Keep Safari frontmost for the entire capture.** This is the one way to
+> waste a run. VoiceOver does not announce live-region updates from a
+> **background** app, so the moment focus moves to the terminal the streamed
+> reply goes unspoken and the transcript records silence. Trigger the reply and
+> do not switch away until it finishes. Do not watch the capture output — it is
+> written to disk and read afterwards. `vo-assert.mjs` detects focus loss and
+> refuses to score such a run (exit 2) rather than reporting a clean pass on
+> nothing.
 
 **3. Assert the transcript.**
 

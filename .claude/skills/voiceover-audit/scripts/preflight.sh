@@ -16,6 +16,14 @@ echo
 # 1. VoiceOver running -------------------------------------------------------
 if pgrep -x VoiceOver >/dev/null; then
   say "✓" "VoiceOver is running"
+elif pgrep -f "VoiceOver Quickstart" >/dev/null; then
+  # First-ever launch parks on the Quickstart splash. VoiceOver has been asked
+  # to start and is speaking, so it feels on — but the main process is not up
+  # and AppleScript has nothing to talk to yet.
+  say "✗" "VoiceOver is stuck on the Quickstart splash (first-run tutorial)"
+  say " " "  → in that dialog choose 'Use VoiceOver' (or press Escape to skip the tutorial)"
+  say " " "  it looks on and is already speaking, but the main process has not started"
+  fail
 else
   say "✗" "VoiceOver is not running"
   say " " "  → press ⌘F5, or run: /System/Library/CoreServices/VoiceOver.app/Contents/MacOS/VoiceOver"

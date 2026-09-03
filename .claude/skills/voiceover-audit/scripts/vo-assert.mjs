@@ -34,7 +34,59 @@ const check = (name, ok, detail = '') => {
   console.log(`  ${ok ? '✓' : '✗'} ${name}${detail && !ok ? ` — ${detail}` : ''}`);
 };
 
-const texts = rows.map(r => r.text);
+/* ---------------- validity gate ----------------
+ * Screen readers suppress live-region announcements from BACKGROUND apps. If
+ * focus left Safari mid-capture, the streamed reply was never spoken and every
+ * check below would measure silence and call it clean. Scoring that would be
+ * worse than not running at all, so refuse outright.
+ *
+ * VoiceOver narrates an app switch as "<AppName> … window", which is the
+ * cheapest reliable signal that focus moved.                                */
+{
+  const appSwitch = /^([A-Z][\w .-]{1,30}?)\s.*\bwindow\b/;
+  const switches = rows
+    .map(r => ({ ...r, app: r.text.match(appSwitch)?.[1] }))
+    .filter(r => r.app);
+  const away = switches.filter(r => !/^Safari/i.test(r.app));
+
+  if (away.length) {
+    const last = switches.at(-1);
+    const endedInSafari = last && /^Safari/i.test(last.app);
+    console.log(`\n⚠ INVALID CAPTURE — focus left Safari during recording.\n`);
+    for (const r of away) console.log(`    ${String(r.atMs).padStart(6)}ms  switched to ${r.app}`);
+    console.log(`
+  VoiceOver does not announce live-region updates from a background app, so
+  any reply that streamed after that point was never spoken and is absent from
+  this transcript. The checks below would pass on silence.
+
+  Re-run and keep Safari frontmost for the WHOLE capture: trigger the reply,
+  then do not switch away until it finishes. Do not watch the terminal — the
+  transcript is written to disk and read afterwards.${endedInSafari ? '' : `
+  (The capture also ended outside Safari.)`}`);
+    process.exit(2);
+  }
+}
+
+/* ---------------- phrase-log de-grouping ----------------
+ * `content of last phrase` does not return one utterance. It returns a rolling
+ * group of the most recent utterances, joined by a DOUBLE space. That matters:
+ * naively, every sample looks like it restates the one before it, which reads
+ * as a live region re-announcing content it already spoke.
+ *
+ * The join is distinguishable from real content. speechText() collapses all
+ * whitespace and emits each node as "Clause. " with a single trailing space, so
+ * two genuinely adjacent DOM nodes can only ever join with ONE space. A double
+ * space is therefore VoiceOver's separator, not something the page produced.
+ *
+ * Split on it and keep the newest segment — that is the utterance this sample
+ * actually added. Real duplication survives this (the same text would appear as
+ * the newest segment twice); the grouping artifact does not.                */
+const newestUtterance = t => t.split(/\s{2,}/).filter(Boolean).pop() ?? t;
+const grouped = rows.filter(r => /\S\s{2,}\S/.test(r.text)).length;
+const texts = rows.map(r => newestUtterance(r.text));
+if (grouped) {
+  console.log(`note: ${grouped}/${rows.length} samples were phrase-log groups; scoring the newest utterance in each.`);
+}
 const lens = texts.map(t => t.length).sort((a, b) => a - b);
 const median = lens[Math.floor(lens.length / 2)];
 const gaps = rows.slice(1).map((r, i) => r.atMs - rows[i].atMs);
