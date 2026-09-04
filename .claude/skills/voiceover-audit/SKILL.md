@@ -110,6 +110,14 @@ A green run is **evidence, not proof**. Three limits, all real:
   exact tally — which under-samples the very stutter this hunts. It still
   detects it (rapid short phrases, or each phrase restating the last), but do
   not quote the count as precise.
+- **The poll blocks while VoiceOver is speaking.** VoiceOver services the Apple
+  Event only when its main loop is free, so a query that normally costs ~110ms
+  was measured at 3.9s and 12.0s during active speech. The effective sampling
+  rate collapses exactly when output is busiest, and short announcements inside
+  a stall are never seen. Consequence: **absence of a phrase proves nothing.**
+  The turn-completion check reports INCONCLUSIVE rather than FAIL for this
+  reason — on the first real run it called a note missing that the operator had
+  plainly heard. `vo-capture.mjs` warns when any inter-sample gap exceeds 3s.
 - **Pace and prosody are not measured.** Gap timings approximate "readable
   pace"; they cannot tell you it sounds right.
 - Passing means the plumbing works. It does not mean the experience is good.
@@ -124,3 +132,21 @@ The rules' checklist items this skill does not cover — all keyboard-only, no
 mouse: open a 📎 source chip, edit a memory, approve a write, switch tabs with
 arrow keys, and confirm focus lands somewhere sensible after each. Then zoom to
 200% and 400% and re-run the turn.
+
+## Regression fixtures
+
+`fixtures/` holds three captures with known verdicts. Run them after any change
+to the scripts:
+
+```bash
+for f in real-pass token-stutter focus-loss; do
+  node .claude/skills/voiceover-audit/scripts/vo-assert.mjs \
+    .claude/skills/voiceover-audit/fixtures/$f.jsonl >/dev/null 2>&1
+  echo "$f → exit=$?"
+done
+# expected: real-pass=0, token-stutter=1, focus-loss=2
+```
+
+`real-pass.jsonl` is a genuine VoiceOver + Safari capture of the agent demo
+streaming "Am I on track for retirement?" — the reference for what good
+looks like.

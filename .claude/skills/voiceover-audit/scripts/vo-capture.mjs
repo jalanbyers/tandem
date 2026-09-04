@@ -97,7 +97,20 @@ child.on('close', code => {
     console.error('accepting AppleScript, or Automation permission is missing.');
     process.exit(1);
   }
-  console.log(`\n${phrases.length} phrases captured over ${SECONDS}s → ${OUT}`);
+  // Report the ACTUAL window, not the requested one. They differ: VoiceOver
+  // services the Apple Event only when its main loop is free, so each poll can
+  // block for seconds while it is busy speaking.
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`\n${phrases.length} phrases captured over ${elapsed}s actual (${SECONDS}s requested) → ${OUT}`);
+
+  const gaps = phrases.slice(1).map((p, i) => p.atMs - phrases[i].atMs);
+  const worst = Math.max(0, ...gaps);
+  if (worst > 3000) {
+    console.log(`\n⚠ sampling confidence: largest gap between samples was ${(worst / 1000).toFixed(1)}s.`);
+    console.log('  A `last phrase` query blocks while VoiceOver is mid-speech, so a gap');
+    console.log('  may be a STALL rather than silence. Short announcements inside a gap');
+    console.log('  are missed. Treat absence of any single phrase as unproven.');
+  }
   if (phrases.length === 0) {
     console.log('Nothing was spoken. Did the reply actually stream while capturing?');
   }

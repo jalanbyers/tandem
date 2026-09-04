@@ -28,7 +28,7 @@ if (!rows.length) {
   process.exit(1);
 }
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, inconclusive = 0;
 const check = (name, ok, detail = '') => {
   ok ? pass++ : fail++;
   console.log(`  ${ok ? '✓' : '✗'} ${name}${detail && !ok ? ` — ${detail}` : ''}`);
@@ -134,20 +134,29 @@ check('no raw HTML entities spoken', !texts.some(t => /&(amp|nbsp|lt|gt|#\d+);/i
 
 console.log('\n— the turn boundary settles —');
 const noteHits = texts.filter(t => t.toLowerCase().includes(TURN_NOTE.toLowerCase()));
-check(`turn-completion announced exactly once ("${TURN_NOTE}")`,
-  noteHits.length === 1, `heard ${noteHits.length}×`);
-// Only meaningful once the note was heard at all — otherwise this would pass
-// vacuously on the very transcript that is missing it.
-if (noteHits.length) {
+
+if (noteHits.length === 1) {
+  check(`turn-completion announced exactly once ("${TURN_NOTE}")`, true);
   check('turn-completion is the final phrase',
     texts.at(-1).toLowerCase().includes(TURN_NOTE.toLowerCase()),
     `last phrase was "${texts.at(-1).slice(0, 50)}"`);
+} else if (noteHits.length > 1) {
+  check(`turn-completion announced exactly once ("${TURN_NOTE}")`, false, `heard ${noteHits.length}×`);
 } else {
-  console.log('  – turn-completion ordering: not checked (never announced)');
+  // ABSENCE IS NOT EVIDENCE HERE, and calling it a failure was wrong.
+  // A `last phrase` poll blocks while VoiceOver is speaking — measured stalls
+  // of 4s and 12s on a real run — so a short announcement can be spoken and
+  // never sampled. This tool cannot distinguish "never announced" from "missed
+  // while VoiceOver was busy". It reported a FAIL for a note the operator had
+  // actually heard; inconclusive is the truthful state.
+  console.log(`  ? turn-completion ("${TURN_NOTE}") — INCONCLUSIVE, not sampled`);
+  console.log('      Absence cannot be proven by polling. Confirm by ear: after the last');
+  console.log('      clause, the coach should settle with an audible completion note.');
+  inconclusive++;
 }
 
 console.log(`\n${'═'.repeat(40)}`);
-console.log(`PASS ${pass} · FAIL ${fail}`);
+console.log(`PASS ${pass} · FAIL ${fail}${inconclusive ? ` · INCONCLUSIVE ${inconclusive}` : ''}`);
 console.log(`
 Caveats, so this is not over-read:
   • \`last phrase\` is sampled, not queued — phrase count is a floor, not a tally.
