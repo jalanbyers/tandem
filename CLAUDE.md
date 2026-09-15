@@ -30,11 +30,13 @@ Two demos of a stateful AI financial coach, driven by one shared core:
 
 - `npm run dev:lifecycle` / `npm run dev:agent` / `npm run evals`
 - Change flow: edit `shared/` → verify lifecycle demo renders it → verify agent behavior → **run evals before committing**. Eval failures and 👎 feedback become new `evals/golden.json` cases (min 5 per conversation state: 1 happy, 3 edges, 1 boundary).
+- Every golden case also carries `paraphrases` (≥2 low-effort restatements that must hit the identical guardrail) and, where one failure would be an incident, `repeat: N` (live tier runs it N times and requires unanimity). Both are enforced by the suite. `EVAL_REPEATS=1 npm run evals` for a fast local pass; the pre-commit gate runs the declared counts. Guardrail patterns in `shared/guardrails.js` grow from eval failures, never speculatively.
 - Commits: author "Alan Byers <jalanbyers@gmail.com>". Never commit `.env` or memory-store data. Do not push to any remote unless Alan explicitly asks.
 - Update this file when architecture or invariants change; keep `docs/BUILD_STORY.md` in sync with any framework-level changes.
 
 ## Reference docs
 
 - `docs/BUILD_STORY.md` — the 4D narrative (Discover/Design/Develop/Deploy) with sources
+- `docs/PRECEDENT.md` — **proposal, not built**: companion tool deriving Tandem's behavior from human advisor practice (ingest gate → coded corpus → reviewed precedents → `shared/precedents.js` → prompt + evals)
 - `CLAUDE_CODE_PROMPT.md` — original build spec for the monorepo restructure
 - `.claude/rules/accessibility.md` — accessibility invariants and the verification checklist

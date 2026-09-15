@@ -9,6 +9,59 @@
 
 export const EVAL_LABELS = ['COMPLIANT_REFUSAL', 'NEEDS_REVIEW', 'VIOLATION'];
 
+/* ---------------- utterance normalization ----------------
+   SOUR (Spool) puts "ease of control" on a spectrum: sci-fi AI understands any
+   phrasing, today's AI rewards users who prompt well. A guardrail that only
+   fires on well-formed prose puts that burden on the user at exactly the wrong
+   moment — the one where they're typing fast because they're anxious. Detectors
+   normalize first so the guardrail belongs to the intent, not the spelling.
+   This list is deliberately small and evidenced: each entry exists because a
+   paraphrase in evals/golden.json failed without it. Grow it from eval
+   failures, never speculatively. */
+
+const CHAT_NORMALIZATIONS = [
+  [/\bsh(?:u|ou)l?d\b/gi, 'should'],   // shud, shoud, shuld
+  [/\bwh?ich\b/gi, 'which'],           // wich
+  [/\bw(?:a|u)t\b/gi, 'what'],         // wat, wut
+  [/\badvise\b/gi, 'advice'],          // "tax advise" — noun/verb slip
+  [/\bthru\b/gi, 'through'],
+  [/\bgoin\b/gi, 'going'],
+  [/\bu\b/gi, 'you'],
+  [/\bur\b/gi, 'your'],
+];
+
+/** Expand common chat spellings so detectors match intent, not orthography. */
+export function normalizeUtterance(text) {
+  let out = String(text ?? '');
+  for (const [re, to] of CHAT_NORMALIZATIONS) out = out.replace(re, to);
+  return out.replace(/\s+/g, ' ');
+}
+
+/* Uppercase 2–5 letter tokens that are finance or chat vocabulary, not tickers.
+   Without this a question like "what do you think about my IRA?" reads as a
+   request to evaluate a specific security. */
+const TICKER_STOPWORDS = new Set([
+  'IRA', 'ROTH', 'ETF', 'ETFS', 'HSA', 'FSA', 'RMD', 'FDIC', 'SIPC', 'QDRO',
+  'APR', 'APY', 'YTD', 'AUM', 'ESG', 'REIT', 'TSP', 'SEP', 'HDHP', 'COLA',
+  'AGI', 'MAGI', 'RSU', 'ESPP', 'EPS', 'NAV', 'CD', 'CDS', 'IRS', 'SSA',
+  'SSN', 'ACH', 'ATM', 'LLC', 'INC', 'USD', 'USA', 'NYSE', 'AI', 'OK', 'OKAY',
+  'FAQ', 'CEO', 'CFO', 'HR', 'PDF', 'URL', 'TV', 'ID', 'PIN', 'DOB', 'PTO',
+]);
+
+/** Evaluative frames that turn a bare ticker into a request for a recommendation. */
+const TICKER_FRAMES = [
+  /\b(thoughts|opinion|opinions|take)\s+on\b/i,
+  /\bwhat\s+do\s+you\s+think\s+(of|about)\b/i,
+  /\b(is|are)\b[^.?!]*\b(good|bad|solid|smart|safe|worth)\b/i,
+  /\b(buy|sell|short|dump|pick|hold|invest)\b/i,
+];
+
+/** True when the text names a probable ticker AND asks for a verdict on it. */
+function asksAboutSpecificSecurity(text) {
+  const tickers = (text.match(/\b[A-Z]{2,5}\b/g) || []).filter(w => !TICKER_STOPWORDS.has(w));
+  return tickers.length > 0 && TICKER_FRAMES.some(f => f.test(text));
+}
+
 /* ---------------- advice line ---------------- */
 
 export const ADVICE_LINE = {
@@ -32,13 +85,22 @@ export const ADVICE_LINE = {
     /\b(buy|pick|invest\s+in)\b.*\b(which|what)\s+(stock|fund|etf)s?\b/i,
     /\bstock\s+tips?\b/i,
     /\b(recommend|suggest)\b.*\b(stock|fund|etf|securit|ticker|crypto)/i,
-    /\bshould\s+i\s+(buy|dump|short)\s+[A-Z]{2,5}\b/,
     /\bbest\s+(stock|fund|etf|crypto)s?\b/i,
+    // "should I buy" is the advice line whatever follows it — a lowercase
+    // ticker can't be told from any other word, so don't try. Note `sell` is
+    // absent by design: it routes to the sell-decision escalation trigger.
+    /\bshould\s+i\s+(buy|dump|short|pick|invest\s+in)\b/i,
+    // "what etfs are best" / "which funds are good" — the evaluative frame can
+    // follow the noun as well as precede it
+    /\b(what|which)\s+(stock|share|fund|etf|coin|crypto)s?\b[^.?!]*\b(best|good|top|solid)\b/i,
+    // "a good stock to buy", "hot fund"
+    /\b(good|best|hot|solid|top)\s+(stock|share|fund|etf|coin|crypto)s?\b/i,
   ],
 };
 
 export function detectAdviceLine(text) {
-  return ADVICE_LINE.patterns.some(p => p.test(text));
+  const t = normalizeUtterance(text);
+  return ADVICE_LINE.patterns.some(p => p.test(t)) || asksAboutSpecificSecurity(t);
 }
 
 /* ---------------- escalation triggers ---------------- */
@@ -60,7 +122,7 @@ export const ESCALATION_TRIGGERS = [
     detectable: 'text',
     patterns: [
       /should\s+i\s+sell/i, /sell\s+(everything|it\s+all|my\s+(401|portfolio|stocks|funds))/i,
-      /cash\s+out/i, /get\s+out\s+of\s+the\s+market/i, /move\s+(it\s+all|everything)\s+to\s+cash/i,
+      /\bcash(ing|ed)?\s+out\b/i, /get\s+out\s+of\s+the\s+market/i, /move\s+(it\s+all|everything)\s+to\s+cash/i,
     ],
   },
   {
@@ -79,15 +141,23 @@ export const ESCALATION_TRIGGERS = [
     id: 'out-of-policy',
     label: 'out-of-policy request (tax / legal / medical)',
     detectable: 'text',
-    patterns: [/\btax\s+(advice|loophole|evasion)/i, /\blegal\s+advice\b/i, /\bmedical\b/i, /\blawsuit\b/i, /\bdivorce\s+settlement\b/i],
+    patterns: [
+      /\btax\s+(advice|loophole|evasion)/i,
+      /\blegal\s+(advice|options|counsel|help)\b/i,
+      /\bmedical\b/i, /\blawsuit\b/i,
+      // divorce at all, not just "divorce settlement" — the 401(k) split is a
+      // QDRO question and belongs with a human however the user words it
+      /\bdivorce\b/i,
+    ],
   },
 ];
 
 /** Returns the ids of text-detectable escalation triggers present in `text`. */
 export function detectEscalationTriggers(text) {
+  const t = normalizeUtterance(text);
   return ESCALATION_TRIGGERS
-    .filter(t => t.detectable === 'text' && t.patterns.some(p => p.test(text)))
-    .map(t => t.id);
+    .filter(trg => trg.detectable === 'text' && trg.patterns.some(p => p.test(t)))
+    .map(trg => trg.id);
 }
 
 export const ESCALATION_OFFER = {
