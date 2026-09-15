@@ -8,3 +8,12 @@ node_modules/
 # agent memory-store + feedback data (runtime state, user-deletable)
 agent-demo/data/memory-store.json
 agent-demo/data/feedback-queue.json
+
+# de-identified corpus — regenerable from transcripts via the ingest gate.
+# Never commit corpus output: committing it would make a de-identification bug
+# permanent in git history, which is the one place you cannot honour a deletion.
+precedent/data/corpus/
+
+# local a11y tooling — npx one-offs, never a dependency
+dev/node_modules/
+dev/*.json
