@@ -17,6 +17,18 @@
   --amber:#92400e; --amber-bg:#fef3c7;   /* 6.4:1 on amber-bg */
   --blue:#1d4ed8; --blue-bg:#eff6ff; --red:#b91c1c; --red-bg:#fee2e2; --purple:#7c3aed; --purple-bg:#f3e8ff;
 
+  /* Control boundaries (WCAG 1.4.11 non-text contrast, 3:1).
+     --line is decorative: dividers and card edges, exempt from 1.4.11.
+     --line-control is for controls whose ONLY visual boundary is their border —
+     an inactive tab is --card on --bg, a 1.09:1 difference, so without this the
+     hit area is invisible to a low-vision user even though the label is legible.
+     --cite-border is the citation chip specifically: its --blue-bg fill sits on a
+     white bubble at 1.09:1, so the chip's extent rests entirely on its border.
+     That chip is the product's verification affordance; it does not get to be
+     the least visible control on the page. */
+  --line-control:#767676;   /* 4.54:1 on --card, 4.18:1 on --bg */
+  --cite-border:#4f86e8;    /* 3.55:1 on --card, 3.27:1 on --blue-bg */
+
   /* focus + target-size tokens (WCAG 2.2 AA: 2.4.11 focus appearance, 2.5.8 target size) */
   --focus:#0b57d0;
   --focus-width:3px;
@@ -47,9 +59,9 @@ header h1{font-size:15px;font-weight:650}
 header .sub{font-size:11.5px;color:var(--ink-2)}
 .tabs{display:flex;gap:4px;margin-left:18px;align-items:center}
 .tabs [role="tablist"]{display:flex;gap:4px}
-.tabs button{font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink-2);font-weight:550}
+.tabs button{font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--line-control);background:var(--card);cursor:pointer;color:var(--ink-2);font-weight:550}
 .tabs button.active{background:var(--green-solid);color:#fff;border-color:var(--green-solid)}
-.tabs a{font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-2);font-weight:550;text-decoration:none;display:inline-flex;align-items:center;min-height:var(--target-min);margin-left:4px}
+.tabs a{font-size:12px;padding:7px 14px;border-radius:8px;border:1px solid var(--line-control);background:var(--card);color:var(--ink-2);font-weight:550;text-decoration:none;display:inline-flex;align-items:center;min-height:var(--target-min);margin-left:4px}
 .tabs a:hover{text-decoration:underline}
 .badge{background:var(--red);color:#fff;border-radius:99px;font-size:9.5px;padding:1px 6px;margin-left:4px}
 .tabs button.active .badge{background:#fff;color:var(--red)}
@@ -61,12 +73,30 @@ header .sub{font-size:11.5px;color:var(--ink-2)}
 .state-pill li.active::before{content:"● "}
 .state-pill li.degraded-active{background:var(--amber);border-color:var(--amber);color:#fff;font-weight:600}
 .state-pill li.degraded-active::before{content:"⚠ "}
-.toggle-btn{font-size:11.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);cursor:pointer;color:var(--ink-2)}
+.toggle-btn{font-size:11.5px;padding:6px 12px;border-radius:8px;border:1px solid var(--line-control);background:var(--card);cursor:pointer;color:var(--ink-2)}
 .toggle-btn[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 
 main{flex:1;min-height:0;display:flex;flex-direction:column}
 .view{display:none;flex:1;min-height:0}
 .view.active{display:flex}
+
+/* ===== caption track (presenter mode) =====
+   A visible mirror of the screen-reader regions. The mount is aria-hidden in
+   a11y.js — this is presentation of an announcement, never the announcement.
+   Hidden unless presenter mode is on, like every other annotation layer. */
+.cap-panel{display:none}
+body.show-debug .cap-panel{display:flex;flex-direction:column;border-top:1px solid var(--line);background:var(--card);max-height:33vh;flex-shrink:0}
+.cap-panel .cap-head{padding:8px 16px 4px;font-size:11px;font-weight:700;letter-spacing:.4px;color:var(--green-dark);text-transform:uppercase}
+.cap-panel .cap-note{padding:0 16px 8px;font-size:11.5px;color:var(--ink-2);line-height:1.5}
+.cap-track{overflow-y:auto;padding:0 16px 12px}
+.cap-track:focus-visible{outline:var(--focus-width) solid var(--focus);outline-offset:calc(-1 * var(--focus-width))}
+.cap-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px}
+.cap{display:flex;gap:8px;align-items:baseline;font-size:12px;line-height:1.5;padding:3px 0;border-bottom:1px dashed var(--line)}
+.cap-kind{flex-shrink:0;font-size:9.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;padding:1px 6px;border-radius:99px;border:1px solid var(--line-control);color:var(--ink-2);min-width:58px;text-align:center}
+.cap-alert .cap-kind{background:var(--amber-bg);border-color:var(--amber);color:var(--amber)}
+.cap-boundary .cap-kind,.cap-boundary .cap-text{font-style:italic;color:var(--ink-2)}
+.cap-text{color:var(--ink)}
+.cap-empty{font-size:12px;color:var(--ink-2);font-style:italic}
 
 /* ===== chat ===== */
 .layout{display:flex;flex:1;min-height:0}
@@ -87,7 +117,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 
 /* Citation chips are inline in a sentence (exempt from 2.5.8 target size)
    and are disclosures: the panel follows the trigger immediately in the DOM. */
-.citation{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);color:var(--blue);border-radius:6px;padding:1px 7px;font-size:11px;cursor:pointer;margin:0 2px;vertical-align:1px;border:1px solid #b9d3fb;font-family:inherit}
+.citation{display:inline-flex;align-items:center;gap:4px;background:var(--blue-bg);color:var(--blue);border-radius:6px;padding:1px 7px;font-size:11px;cursor:pointer;margin:0 2px;vertical-align:1px;border:1px solid var(--cite-border);font-family:inherit}
 .citation:hover{background:#dbeafe}
 .cite-panel{display:none;margin-top:8px;background:var(--blue-bg);border:1px solid #b9d3fb;border-radius:8px;padding:10px 12px;font-size:12px;color:#1e3a8a}
 .cite-panel.open{display:block}
@@ -99,7 +129,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .action-card .ac-row{display:flex;justify-content:space-between;gap:12px;padding:3px 0;color:var(--ink-2)}
 .action-card .ac-row b{color:var(--ink)}
 .action-card .ac-btns{display:flex;gap:8px;padding:0 12px 12px;background:var(--card);flex-wrap:wrap}
-.ac-btns button{flex:1;padding:9px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.ac-btns button{flex:1;padding:9px;border-radius:8px;font-size:12.5px;font-weight:600;cursor:pointer;border:1px solid var(--line-control);background:var(--card);color:var(--ink)}
 .ac-btns .primary{background:var(--green-solid);color:#fff;border-color:var(--green-solid)}
 .ac-note{font-size:11px;color:var(--ink-2);padding:0 12px 10px;background:var(--card)}
 .ac-outcome{padding:9px;font-size:12.5px;color:var(--green-dark);font-weight:600}
@@ -114,7 +144,7 @@ main{flex:1;min-height:0;display:flex;flex-direction:column}
 .consent button.yes{background:var(--purple);color:#fff;border-color:var(--purple)}
 
 .feedback{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
-.feedback button{border:1px solid var(--line);background:var(--card);border-radius:6px;font-size:11px;padding:3px 9px;cursor:pointer;color:var(--ink-2);min-width:var(--target-min)}
+.feedback button{border:1px solid var(--line-control);background:var(--card);border-radius:6px;font-size:11px;padding:3px 9px;cursor:pointer;color:var(--ink-2);min-width:var(--target-min)}
 .feedback button.sel{background:var(--green-solid);color:#fff;border-color:var(--green-solid)}
 .feedback button.sel.neg{background:var(--red);border-color:var(--red)}
 /* Selection is not colour-only: the pressed control also gains a mark. */

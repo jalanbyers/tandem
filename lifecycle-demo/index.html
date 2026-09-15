@@ -67,6 +67,12 @@
       </form>
       <p class="disclaim" id="disclaim"></p>
     </div>
+
+    <div class="cap-panel">
+      <div class="cap-head" id="capHead"></div>
+      <p class="cap-note" id="capNote"></p>
+      <div id="capTrack"></div>
+    </div>
   </div>
 
   <aside aria-labelledby="memTitle">
@@ -172,8 +178,7 @@ import { loadPersona } from '../shared/persona.js';
 import {
   A11Y_COPY, createStatusRegion, createStreamAnnouncer, initTabs, initSkipLink,
   toggleDisclosure, openInlineMemoryEdit, createTurn, feedbackRowHtml,
-  setFeedbackPressed, scrollToLatest, speechText, actionOutcomeHtml,
-} from '../shared/a11y.js';
+  setFeedbackPressed, scrollToLatest, speechText, actionOutcomeHtml, makeScrollableRegion, createCaptionTrack } from '../shared/a11y.js';
 
 /* ============ shared-core boot ============ */
 const persona = await loadPersona('../shared/persona.md');
@@ -181,8 +186,13 @@ const SCENARIO = buildScenario(persona);
 const T = createTelemetry();
 const M = T.counters;
 
-const announce = createStatusRegion();
-const announcer = createStreamAnnouncer({ announce });
+// Presenter-mode mirror of the live regions. Built first so both announcers
+// can feed it; the mount is aria-hidden inside createCaptionTrack.
+document.getElementById('capHead').textContent = A11Y_COPY.captionTitle;
+document.getElementById('capNote').textContent = A11Y_COPY.captionNote;
+const captions = createCaptionTrack(document.getElementById('capTrack'));
+const announce = createStatusRegion({ onSpeak: captions.speak });
+const announcer = createStreamAnnouncer({ announce, onSpeak: captions.speak });
 
 document.getElementById('headerSub').textContent = persona['header-sub'];
 document.getElementById('disclaim').textContent = `${persona['disclaimer']} ${persona['disclaimer-lifecycle']}`;
@@ -226,6 +236,7 @@ function log(evt, delta){
 }
 function renderMetrics(){
   document.getElementById('metricsWrap').innerHTML = renderMetricsView(M);
+  makeScrollableRegion(document.getElementById('metricsWrap'), A11Y_COPY.metricsRegionLabel);
 }
 
 /* ============ chrome ============ */
@@ -312,7 +323,9 @@ function coachMsg(ev){
         ${ev.debug?`<div class="debug">${ev.debug}</div>`:''}
         ${ev.noFeedback?'':feedbackRowHtml()}`);
       scrollToLatest(chat);
-      announcer.say(li, ev.html, { note: ev.degraded ? A11Y_COPY.turnDegraded : A11Y_COPY.turnComplete });
+      announcer.say(li, ev.html, ev.degraded
+        ? { note: A11Y_COPY.turnDegraded, kind: 'alert' }
+        : { note: A11Y_COPY.turnComplete });
       if(ev.claims){ M.claimsTotal+=ev.claims; M.claimsGrounded+=ev.claims; T.impact('groundedClaims'); log('claimsTotal',0); }
       res();
     }, 900);
@@ -394,7 +407,7 @@ chat.addEventListener('click', async e=>{
     } else {
       box.innerHTML=cfg.declinedHtml;
     }
-    announce(speechText(box.innerHTML));
+    announce(speechText(box.innerHTML), 'alert');
     setChips(cfg.chips);
     input.focus();
     return;
@@ -405,7 +418,7 @@ chat.addEventListener('click', async e=>{
     document.getElementById('ac1').querySelector('.ac-btns').innerHTML=cfg.approvedHtml;
     addMemory(cfg.approvedMemory.mtype, cfg.approvedMemory.text, cfg.approvedMemory.decay);
     log('actionsApproved'); T.impact('actionApproved');
-    announce(cfg.approvedAnnouncement);
+    announce(cfg.approvedAnnouncement, 'alert');
     for(const ev of cfg.followUp.events) await coachMsg(ev);
     setChips(cfg.followUp.chips);
     input.focus();

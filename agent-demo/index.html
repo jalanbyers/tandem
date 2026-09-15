@@ -48,6 +48,12 @@
       </form>
       <p class="disclaim" id="disclaim"></p>
     </div>
+
+    <div class="cap-panel">
+      <div class="cap-head" id="capHead"></div>
+      <p class="cap-note" id="capNote"></p>
+      <div id="capTrack"></div>
+    </div>
   </div>
 
   <aside aria-labelledby="memTitle">
@@ -76,14 +82,18 @@ import {
   A11Y_COPY, createStatusRegion, createStreamAnnouncer, initTabs, initSkipLink,
   toggleDisclosure, openInlineMemoryEdit, createTurn, feedbackRowHtml,
   setFeedbackPressed, scrollToLatest, speechText, escAttr,
-  guardrailHtml, escalateHtml, consentHtml, actionOutcomeHtml,
-} from '/shared/a11y.js';
+  guardrailHtml, escalateHtml, consentHtml, actionOutcomeHtml, makeScrollableRegion, createCaptionTrack } from '/shared/a11y.js';
 
 const persona = await loadPersona('/shared/persona.md');
 const sessionId = 's-' + Math.random().toString(36).slice(2);
 
-const announce = createStatusRegion();
-const announcer = createStreamAnnouncer({ announce });
+// Presenter-mode mirror of the live regions. Built first so both announcers
+// can feed it; the mount is aria-hidden inside createCaptionTrack.
+document.getElementById('capHead').textContent = A11Y_COPY.captionTitle;
+document.getElementById('capNote').textContent = A11Y_COPY.captionNote;
+const captions = createCaptionTrack(document.getElementById('capTrack'));
+const announce = createStatusRegion({ onSpeak: captions.speak });
+const announcer = createStreamAnnouncer({ announce, onSpeak: captions.speak });
 
 document.getElementById('headerSub').textContent = persona['header-sub'];
 document.getElementById('disclaim').textContent = `${persona['disclaimer']} ${persona['disclaimer-agent']}`;
@@ -146,6 +156,7 @@ function setStatePillDegraded(){
 async function renderMetrics(){
   const M = await (await fetch('/api/telemetry')).json();
   document.getElementById('metricsWrap').innerHTML = renderMetricsView(M, { note: 'Counters are REAL — they live on the server and reset on server restart.' });
+  makeScrollableRegion(document.getElementById('metricsWrap'), A11Y_COPY.metricsRegionLabel);
 }
 function badge(){ badgeEl.hidden = false; }
 
@@ -403,7 +414,7 @@ chat.addEventListener('click', async e=>{
       card.querySelector('.ac-btns').innerHTML=
         actionOutcomeHtml(`✓ Approved — ${r.change}. Confirmation #${r.confirmationNumber}. Reversible until ${r.reversibleUntil}.`) +
         `<button type="button" class="rollback-btn" data-x="rollback" data-cn="${r.confirmationNumber}" aria-label="Roll back change, confirmation ${r.confirmationNumber}"><span aria-hidden="true">↩</span> roll back</button>`;
-      announce(`Change approved. ${r.change}. Confirmation number ${r.confirmationNumber}.`);
+      announce(`Change approved. ${r.change}. Confirmation number ${r.confirmationNumber}.`, 'alert');
       card.querySelector('.rollback-btn').focus();
       renderMemories(); badge();
     } else if(r.declined){
@@ -421,7 +432,7 @@ chat.addEventListener('click', async e=>{
     const grant=x.dataset.x==='consent-yes';
     await fetch('/api/memory/consent',{method:'POST',body:JSON.stringify({id:+box.dataset.consentId,grant})});
     box.innerHTML=grant?CONSENT_COPY.granted:CONSENT_COPY.declined;
-    announce(speechText(box.innerHTML));
+    announce(speechText(box.innerHTML), 'alert');
     input.focus();
     renderMemories(); badge();
   }

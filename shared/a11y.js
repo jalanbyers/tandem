@@ -27,6 +27,7 @@ export const A11Y_COPY = {
   chipsLabel: 'Suggested replies',
   tablistLabel: 'Demo sections',
   statePillLabel: 'Conversation state',
+  metricsRegionLabel: 'Instrumentation metrics, scrollable',
   stateCurrent: 'current',
   thinking: 'Coach is thinking…',
   turnComplete: 'Coach has finished replying.',
@@ -56,6 +57,14 @@ export const A11Y_COPY = {
   degradedLabel: 'Limited service notice',
   presenterOn: 'Presenter mode on. Per-turn annotations are now shown.',
   presenterOff: 'Presenter mode off.',
+
+  /* Caption track — presenter-mode mirror of the live regions. */
+  captionTitle: 'What a screen reader hears',
+  captionNote:
+    'Live mirror of the polite and assertive regions. Note the left column fills token by ' +
+    'token while this fills clause by clause — announcing every token makes VoiceOver ' +
+    'stutter and re-read, which is worse than silence.',
+  captionEmpty: 'Nothing announced yet. Send a message to hear the coach.',
 };
 
 /* ============================================================
@@ -93,23 +102,43 @@ function makeSrRegion(role, { atomic }) {
 }
 
 /**
- * A single polite status region for discrete announcements: memory edits,
- * state transitions, presenter-mode toggles, turn boundaries.
+ * Discrete announcements: memory edits, state transitions, presenter-mode
+ * toggles, turn boundaries, and write outcomes.
  *
- * Returns an `announce(message)` function. Successive calls clear first so a
- * repeated message still fires.
+ * Returns `announce(message, kind)` where kind is 'status' (polite, the
+ * default) or 'alert' (assertive). Successive calls to the same region clear
+ * first so a repeated message still fires.
+ *
+ * `onSpeak` mirrors each announcement to the visible caption track. It receives
+ * the SAME string that reaches the live region — a caption that paraphrases
+ * what a screen reader hears is a lie about the product.
  */
-export function createStatusRegion() {
-  const el = makeSrRegion('status', { atomic: true });
-  let t, clearT;
-  return function announce(message) {
-    clearTimeout(t);
-    clearTimeout(clearT);
+export function createStatusRegion({ onSpeak } = {}) {
+  // Two regions, because two urgencies. Polite waits its turn: correct for
+  // state changes and memory edits. Assertive interrupts: correct only where
+  // silence would let a user keep acting on a false belief — a write that just
+  // executed, or a coach that has stopped being able to verify anything.
+  // Over-using assertive is its own defect, so the kinds are deliberately few.
+  const regions = {
+    status: makeSrRegion('status', { atomic: true }),
+    alert: makeSrRegion('alert', { atomic: true }),
+  };
+  regions.alert.setAttribute('aria-live', 'assertive');
+  const timers = new Map();
+
+  return function announce(message, kind = 'status') {
+    const el = regions[kind] || regions.status;
+    // Mirror the exact string, and the region it actually went to — a caption
+    // claiming "assertive" over a polite region would misrepresent the product.
+    onSpeak?.(message, kind);
+    const prev = timers.get(el);
+    if (prev) { clearTimeout(prev.set); clearTimeout(prev.clear); }
     el.textContent = '';
-    t = setTimeout(() => { el.textContent = message; }, 60);
+    const set = setTimeout(() => { el.textContent = message; }, 60);
     // Announced text is transient. Left in place it becomes stale content a
     // user meets while browsing the page, so retire it once it has been read.
-    clearT = setTimeout(() => { el.textContent = ''; }, 8000);
+    const clear = setTimeout(() => { el.textContent = ''; }, 8000);
+    timers.set(el, { set, clear });
   };
 }
 
@@ -132,6 +161,10 @@ export const speechText = html =>
     // Stripping a tag or marker can strand a space before punctuation, which
     // screen readers read as a pause mid-figure ("$48,200 . ").
     .replace(/\s+([.,;:!?])/g, '$1')
+    // Stripping a leading marker can leave the punctuation that followed it
+    // stranded at the head of a chunk (". That covers it."), which reads as a
+    // stray pause. The sentence it belonged to was already spoken.
+    .replace(/^[\s.,;:!?]+/, '')
     .trim();
 
 /** Escape a string for safe interpolation into an HTML attribute. */
@@ -150,8 +183,23 @@ export const escAttr = s =>
  * @param {object}   opts
  * @param {number}   opts.flushMs   debounce for text with no clause boundary
  * @param {Function} opts.announce  status-region announcer for turn boundaries
+ * @param {Function} opts.onSpeak   visible caption mirror (see createCaptionTrack)
  */
-export function createStreamAnnouncer({ flushMs = 600, announce } = {}) {
+/**
+ * True when the buffer ends inside a grounding marker that has not closed yet.
+ *
+ * speechText() strips whole `[src:x]` markers, but it cannot repair one that has
+ * been split across two flushes: `[src:` goes out with chunk A and the residue
+ * `plan-record].` has no opening bracket left to match, so a screen reader reads
+ * "plan-record dot" aloud. Holding the flush until the marker closes is the only
+ * place this can be fixed — once a chunk is emitted it is already spoken.
+ */
+const hasOpenMarker = s => {
+  const i = s.lastIndexOf('[src');
+  return i !== -1 && s.indexOf(']', i) === -1;
+};
+
+export function createStreamAnnouncer({ flushMs = 600, announce, onSpeak } = {}) {
   const region = makeSrRegion('log', { atomic: false });
   let buffer = '';
   let timer = null;
@@ -160,14 +208,26 @@ export function createStreamAnnouncer({ flushMs = 600, announce } = {}) {
 
   const emit = chunk => {
     const text = speechText(chunk);
-    if (!text) return;
+    // Punctuation-only residue is never worth an announcement.
+    if (!text || !/[\p{L}\p{N}]/u.test(text)) return;
     region.appendChild(document.createTextNode(text + ' '));
+    // Mirror the clause exactly as flushed: the caption track's whole value is
+    // showing that output is spoken in clauses, not tokens.
+    onSpeak?.(text, 'clause');
   };
 
-  const flushAll = () => {
+  const flushAll = ({ force = false } = {}) => {
     clearTimeout(timer);
     timer = null;
-    if (buffer) { emit(buffer); buffer = ''; }
+    if (!buffer) return;
+    // Mid-turn, wait for a half-arrived marker to finish. At a turn boundary
+    // there is nothing more coming, so force and let speechText strip the stub.
+    if (!force && hasOpenMarker(buffer)) {
+      timer = setTimeout(() => { timer = null; flushAll(); }, flushMs);
+      return;
+    }
+    emit(buffer);
+    buffer = '';
   };
 
   return {
@@ -176,7 +236,7 @@ export function createStreamAnnouncer({ flushMs = 600, announce } = {}) {
     /** Take ownership of a message element for the duration of a turn. */
     begin(el) {
       clearTimeout(clearTimer);
-      flushAll();
+      flushAll({ force: true });
       region.replaceChildren();
       buffer = '';
       owner = el || null;
@@ -187,7 +247,9 @@ export function createStreamAnnouncer({ flushMs = 600, announce } = {}) {
     push(delta) {
       buffer += delta;
       const m = CLAUSE_BOUNDARY.exec(buffer);
-      if (m) {
+      // A boundary inside an unclosed marker is not a boundary — flushing there
+      // is what strands "plan-record]." in the next chunk.
+      if (m && !hasOpenMarker(m[1])) {
         emit(m[1]);
         buffer = buffer.slice(m[1].length);
         clearTimeout(timer);
@@ -201,10 +263,10 @@ export function createStreamAnnouncer({ flushMs = 600, announce } = {}) {
      * Turn boundary: flush the tail, hand the bubble back to the a11y tree,
      * and let the user know the coach has settled.
      */
-    end({ note = A11Y_COPY.turnComplete } = {}) {
-      flushAll();
+    end({ note = A11Y_COPY.turnComplete, kind = 'status' } = {}) {
+      flushAll({ force: true });
       if (owner) { owner.removeAttribute('aria-hidden'); owner = null; }
-      if (note) announce?.(note);
+      if (note) announce?.(note, kind);
       clearTimeout(clearTimer);
       clearTimer = setTimeout(() => region.replaceChildren(), 4000);
     },
@@ -214,13 +276,78 @@ export function createStreamAnnouncer({ flushMs = 600, announce } = {}) {
      * hand the bubble back. Same contract as begin/end so both demos behave
      * identically for a screen reader.
      */
-    say(el, html, { note = A11Y_COPY.turnComplete } = {}) {
+    say(el, html, { note = A11Y_COPY.turnComplete, kind = 'status' } = {}) {
       this.begin(el);
       emit(html);
-      this.end({ note });
+      this.end({ note, kind });
     },
   };
 }
+
+/* ============================================================
+   Caption track — the accessibility work, made visible
+   ============================================================ */
+
+/**
+ * A visible mirror of everything the screen-reader regions say.
+ *
+ * Accessibility succeeds by being invisible, which makes it impossible to show.
+ * Presenter mode already exposes the other invisible machinery (eval labels,
+ * faithfulness, tool calls); this does the same for announcements, so the demo
+ * can *demonstrate* the behaviours agentic UIs most often get wrong rather than
+ * merely having them.
+ *
+ * THE MOUNT IS aria-hidden AND THAT IS LOAD-BEARING. The real announcement
+ * lives in the .sr-only regions; a second copy in the accessibility tree would
+ * make a screen reader read every clause twice. A demo of accessibility that
+ * breaks accessibility is worse than no demo, so this never becomes a live
+ * region and never carries a role. Tier 1b asserts it.
+ *
+ * @param {HTMLElement} mount
+ * @returns {{speak(text:string, kind?:string):void, clear():void}}
+ */
+export function createCaptionTrack(mount) {
+  if (!mount) return { speak() {}, clear() {} };
+  mount.setAttribute('aria-hidden', 'true');
+  mount.classList.add('cap-track');
+
+  const list = document.createElement('ol');
+  list.className = 'cap-list';
+  mount.replaceChildren(list);
+
+  return {
+    /**
+     * @param {string} text  exactly what was written to the live region
+     * @param {string} kind  'clause' | 'boundary' | 'status' | 'alert'
+     */
+    speak(text, kind = 'status') {
+      const t = String(text || '').trim();
+      if (!t) return;
+      const li = document.createElement('li');
+      li.className = `cap cap-${kind}`;
+      const tag = document.createElement('span');
+      tag.className = 'cap-kind';
+      tag.textContent = CAPTION_KIND[kind] || kind;
+      const body = document.createElement('span');
+      body.className = 'cap-text';
+      body.textContent = t;
+      li.append(tag, body);
+      list.appendChild(li);
+      // keep the newest caption in view without animating under reduced motion
+      list.scrollTop = list.scrollHeight;
+      while (list.children.length > 60) list.removeChild(list.firstChild);
+    },
+    clear() { list.replaceChildren(); },
+  };
+}
+
+/** Badge text per announcement kind — what a user is actually hearing. */
+export const CAPTION_KIND = {
+  clause: 'polite',
+  boundary: 'polite',
+  status: 'polite',
+  alert: 'assertive',
+};
 
 /* ============================================================
    Tabs — full ARIA pattern with roving tabindex
@@ -426,6 +553,26 @@ export function setFeedbackPressed(button) {
 /* ============================================================
    Skip link + landmarks
    ============================================================ */
+
+/**
+ * Make an overflow container keyboard-scrollable.
+ *
+ * A div with `overflow-y:auto` scrolls with the mouse wheel and is unreachable
+ * without one: a keyboard-only user cannot read past the fold, and there is no
+ * focusable descendant to scroll it into view. WCAG 2.1.1. Giving it tabindex=0
+ * plus a name makes it a labelled, focusable region that responds to the arrow
+ * keys — and the focus ring from tokens.css lands inside it via the negative
+ * offset already used for #chat.
+ *
+ * Called by BOTH demos on their metrics panel; the container markup is per-demo
+ * but the behaviour is defined once, here.
+ */
+export function makeScrollableRegion(el, label) {
+  if (!el) return;
+  el.setAttribute('tabindex', '0');
+  el.setAttribute('role', 'region');
+  el.setAttribute('aria-label', label);
+}
 
 /** Move focus to a landmark when a skip link is used (Safari needs the help). */
 export function initSkipLink(link, targetId) {
