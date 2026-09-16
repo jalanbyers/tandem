@@ -264,6 +264,12 @@ for (const demo of ['lifecycle', 'agent']) {
   check(`${demo} demo: does not restyle the caption track locally`, !/\.cap-list\s*\{/.test(SRC[demo]));
 }
 
+/* Every resolution path returns focus to the composer. Rollback was the one
+   that did not: the user was left on a button whose action had already run. */
+check('agent demo: every resolution path returns focus to the composer',
+  (SRC.agent.match(/input\.focus\(\);/g) || []).length >= 3 &&
+  /'rollback'\)\{[\s\S]{0,600}?input\.focus\(\);/.test(SRC.agent));
+
 console.log('\n— structure, landmarks and the tab pattern —');
 for (const demo of ['lifecycle', 'agent']) {
   const src = SRC[demo];

@@ -238,6 +238,11 @@ async function sendMsg(text){
   if(!text||busy) return;
   busy=true;
   const sendBtn=document.getElementById('sendBtn');
+  // Disabling the element that currently has focus drops focus to <body>, so a
+  // user who clicked Send and then pressed Tab would restart from the top of the
+  // document. Hand focus back to the composer first — where it already is on the
+  // keyboard path, and where the reply is composed from either way.
+  if(document.activeElement===sendBtn) input.focus();
   sendBtn.disabled=true;
   userMsg(text);
 
@@ -426,6 +431,10 @@ chat.addEventListener('click', async e=>{
   else if(x.dataset.x==='rollback'){
     const r=await (await fetch('/api/rollback',{method:'POST',body:JSON.stringify({confirmationNumber:+x.dataset.cn})})).json();
     toast(r.rolledBack?('Rolled back — '+r.restored):('Rollback failed: '+r.error));
+    // Rollback is a resolution like approve/decline/consent, so focus goes back
+    // to the composer. Without this the user is left on a button whose action
+    // has already happened — and for a keyboard user that is a lost place.
+    input.focus();
   }
   else if(x.dataset.x==='consent-yes'||x.dataset.x==='consent-no'){
     const box=x.closest('.consent');

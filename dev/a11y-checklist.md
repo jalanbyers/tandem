@@ -4,16 +4,16 @@ Covers step 5 of the verification checklist in `.claude/rules/accessibility.md`.
 Re-run everything here before any change to `shared/a11y.js`, `shared/tokens.css`, or
 either demo's markup.
 
-- **Date:** 2026-09-15
+- **Date:** 2026-09-15, updated 2026-09-16
 - **Target:** WCAG 2.2 AA
 - **Scope:** `lifecycle-demo/` and `agent-demo/`
-- **Result:** axe 0 violations · keyboard 28/28 · captions 20/20 · evals 268 · screen reader **not run — see §3**
+- **Result:** axe 0 · keyboard 28/28 · focus+zoom+motion 28/28 · captions 20/20 · evals 269 · screen reader **not run — see §3**
 
 ## Scope note
 
 The demos were **already** accessible before this pass: WCAG 2.2 AA shipped in `74b2e7e`,
-and `evals/run-evals.js` Tier 1b holds **66** deterministic accessibility checks that gate
-every commit. What did not exist was *verification against a rendered DOM* — Tier 1b is
+and `evals/run-evals.js` Tier 1b held **66** deterministic accessibility checks gating every
+commit (now **91** — see §4). What did not exist was *verification against a rendered DOM* — Tier 1b is
 static regex analysis and cannot see computed contrast, focus order, or dynamic inserts.
 This pass adds that, and found two real defects.
 
@@ -130,13 +130,38 @@ Accessible names confirmed from the a11y tree (`dev/accname.mjs`): `#freeInput` 
 textbox *"Message the coach"* (via its `sr-only` `<label for>`), send → button *"Send"*,
 presenter toggle → button *"Presenter mode"* with `aria-pressed`.
 
-### Not covered by the automated keyboard pass
+### Reflow, motion and the action-card focus cycle — closed 2026-09-16
 
-- 200% / 400% zoom reflow — **manual, not done this pass**
-- `prefers-reduced-motion` — asserted by Tier 1b (`tokens.css` `@media` block, `a11y.js`
-  honors it), not visually confirmed under the media query
-- Action card approve/decline focus return — the scripted lifecycle path reaches the card,
-  but the automated pass did not exercise the full approve → rollback focus cycle
+`dev/a11y-focus-zoom.mjs`, **28/28**, both demos. These were the three gaps the first pass
+left open.
+
+**Reflow (WCAG 1.4.10)** at 640px (200%) and 320px (400%, the spec's reference width): no
+horizontal scrolling of the page and no element overflowing its box, either demo.
+
+**Reduced motion:** computed `animation-duration` is `1e-06s` and nothing in `<main>` runs a
+perceptible animation or transition. Note `tokens.css` sets `animation-duration:.001ms`
+rather than `animation: none` — deliberate, and better: `animationend` still fires, so code
+waiting on it cannot hang. An assertion testing for `animation: none` would wrongly fail.
+
+**Action-card focus cycle**, driven end to end with real key events:
+card appears → approve → focus moves to the rollback button → rollback → focus returns to
+the composer. Card is `role="group"` with a resolving `aria-labelledby`; approve is a real
+named `<button>`.
+
+### Two focus defects found and fixed
+
+**1. Rollback stranded focus.** Every resolution path (approve, decline, consent) calls
+`input.focus()`; rollback did not, so the user was left sitting on a button whose action had
+already run. The outcome *was* announced — `#toast` carries `role="status"` — but for a
+keyboard user the place was lost. One line, plus a Tier 1b check that every resolution path
+returns focus.
+
+**2. Disabling the focused Send button dropped focus to `<body>`.** `sendBtn.disabled=true`
+while the button held focus, so a user who clicked Send and pressed Tab restarted from the
+top of the document. Worth recording how this was distinguished from a test artifact: on the
+realistic keyboard path (Enter from the input) focus never moved at all, which is correct
+per Phase 4 — it only bit the mouse-then-keyboard user. Fixed by handing focus to the
+composer before disabling.
 
 ---
 
@@ -176,7 +201,10 @@ already defends against this with a 60ms delay before writing
 
 ## 4. Invariants intact
 
-`npm run evals` — **248 checks**, including all 66 in Tier 1b. No behavior changed: the
+`npm run evals` — **269 checks, 0 failures**, of which **91 are Tier 1b accessibility**
+(66 before this pass, plus 11 caption-track gates, 4 split-marker gates, and the rest from
+the assertive-region and control-boundary work). The count is identical under
+`EVAL_REPEATS=1` and the full gate, because repeats collapse into one check per label. No behavior changed: the
 fixes are two CSS tokens and one function that sets three attributes.
 
 > One live-tier case, `plan-happy-on-track`, failed on a single run during this pass and was
@@ -248,6 +276,12 @@ strand a short tail mid-sentence. That is pre-existing and **deliberately not fi
 changing when the buffer flushes is exactly the change that needs a real screen reader to
 validate, and validating it blind would be worse than leaving it. Carry it into the
 `/voiceover-audit` run as the first thing to listen for.
+
+One related asymmetry to judge by ear, not by rule: an **approve** outcome announces
+assertively via `announce(…, 'alert')`, while a **rollback** outcome announces politely via
+the toast's `role="status"`. Both reverse money. Making them symmetric means either
+demoting approve or routing rollback through the alert region — and routing it through both
+would double-announce, which the spec explicitly warns against. Decide after hearing it.
 
 ### Eval-suite note
 
